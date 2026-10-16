@@ -23,7 +23,7 @@ Incluye además el **Tutor Socrático** (panel lateral) y la **verificación de 
 
 ## Identidad corporativa
 
-La interfaz usa los colores de la **Corporación CPIENSA+**: naranja `#F38734` y gris carbón `#373435`, con fondos blancos. Están definidos una sola vez en `src/index.css` (bloque `@theme`), así que todos los componentes los toman automáticamente. El logo está en `src/assets/images/` (`cpiensa-logo.png` y `cpiensa-simbolo.png`).
+La interfaz usa los colores de la **Corporación Étnica Educativa CPIENSA+**: naranja `#F38734` y gris carbón `#373435`, con fondos blancos. Están definidos una sola vez en `src/index.css` (bloque `@theme`), así que todos los componentes los toman automáticamente. El logo está en `src/assets/images/` (`cpiensa-logo.png` y `cpiensa-simbolo.png`).
 
 ## Ejes transversales del diplomado
 

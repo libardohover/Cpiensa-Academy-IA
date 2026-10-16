@@ -31,7 +31,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     studentName: 'Ana María Restrepo Cadavid',
     courseTitle: 'Diplomado Superior en Inteligencia Artificial y Automatización 2.0',
     issueDate: '2026-09-20',
-    institution: 'Corporación CPIENSA+ & CPIENSA+ ACADEMY IA',
+    institution: 'Corporación Étnica Educativa CPIENSA+ & CPIENSA+ ACADEMY IA',
     hours: 120,
     grade: '98/100 (Excelente con Honores)',
     skills: [
@@ -153,7 +153,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             <div className="flex flex-col items-center justify-center mb-6">
               <img src={logoCpiensa} alt="Corporación CPIENSA+" className="h-20 sm:h-24 w-auto mb-3" />
               <span className="text-[11px] font-bold tracking-widest text-blue-700 uppercase font-mono">
-                Corporación Educativa & Tecnológica
+                Corporación Étnica Educativa
               </span>
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-900 mt-1">
                 CPIENSA+ ACADEMY IA

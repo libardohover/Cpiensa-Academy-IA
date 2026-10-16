@@ -82,7 +82,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <p className="text-sm font-bold text-white tracking-tight">
             CPIENSA<span className="text-blue-500">+</span>
           </p>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Corporación</p>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] leading-snug text-slate-400">
+            Corporación<br />Étnica Educativa
+          </p>
         </div>
       </div>
 

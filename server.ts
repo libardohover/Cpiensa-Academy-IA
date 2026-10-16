@@ -369,7 +369,7 @@ app.get('/api/certificates/:code', (req, res) => {
       studentName: 'Ana María Restrepo Cadavid',
       courseTitle: 'Diplomado Superior en Inteligencia Artificial y Automatización 2.0',
       issueDate: '2026-09-20',
-      institution: 'Corporación CPIENSA+',
+      institution: 'Corporación Étnica Educativa CPIENSA+',
       hours: 120,
       grade: '98/100 (Excelente con Honores)',
       skills: ['Ingeniería de Prompts', 'Agentes Autónomos', 'RAG con pgvector', 'n8n & Webhooks', 'Ética cristiana aplicada a la IA', 'IA con pertinencia etnoeducativa'],
