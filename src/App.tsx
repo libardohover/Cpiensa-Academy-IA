@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TopBar } from './components/navigation/TopBar';
 import { Sidebar } from './components/navigation/Sidebar';
+import { AccesoRestringido } from './components/navigation/AccesoRestringido';
+import { NOMBRE_ROL, puedeAcceder } from './auth/permisos';
 import { CampusView } from './components/campus/CampusView';
 import { AIHubView } from './components/aihub/AIHubView';
 import { PromptLabView } from './components/promptlab/PromptLabView';
@@ -29,6 +31,20 @@ import {
   INITIAL_CONNECTORS,
 } from './data/initialData';
 import { TenantOrg, UserRole, UserProfile, PromptVersion, AgentDefinition, Workflow, KnowledgeDocument, NoCodeTool } from './types';
+
+const NOMBRES_SECCION: Record<string, string> = {
+  campus: 'Campus LMS',
+  aihub: 'AI Hub Gateway',
+  promptlab: 'Prompt Lab',
+  agentstudio: 'Agent Studio',
+  automation: 'Automation Studio',
+  knowledge: 'Knowledge Hub (RAG)',
+  nocode: 'No-Code Builder',
+  analytics: 'Analytics Center',
+  marketplace: 'Marketplace',
+  integrations: 'Conectores Enterprise',
+  admin: 'Administración & RBAC',
+};
 
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('campus');
@@ -90,9 +106,12 @@ export default function App() {
     setTutorOpen(true);
   };
 
+  const [avisoRol, setAvisoRol] = useState<string | null>(null);
   const handleRoleChange = (role: UserRole) => {
     setCurrentRole(role);
     setUser((prev) => ({ ...prev, role }));
+    setAvisoRol(`Ahora navegas como ${NOMBRE_ROL[role]}`);
+    window.setTimeout(() => setAvisoRol(null), 3000);
   };
 
   const handleAddOrg = (newOrg: TenantOrg) => {
@@ -165,7 +184,15 @@ export default function App() {
 
         {/* View Router */}
         <main className="flex-1 flex overflow-hidden">
-          {activeSection === 'campus' && (
+          {!puedeAcceder(currentRole, activeSection) && (
+            <AccesoRestringido
+              seccion={activeSection}
+              nombreSeccion={NOMBRES_SECCION[activeSection] ?? activeSection}
+              rolActual={currentRole}
+              onIrAlCampus={() => irASeccion('campus')}
+            />
+          )}
+          {activeSection === 'campus' && puedeAcceder(currentRole, 'campus') && (
             <CampusView
               modules={COURSE_MODULES}
               completedLessonIds={completedLessonIds}
@@ -176,7 +203,7 @@ export default function App() {
             />
           )}
 
-          {activeSection === 'aihub' && (
+          {activeSection === 'aihub' && puedeAcceder(currentRole, 'aihub') && (
             <AIHubView
               models={models}
               initialPrompt={hubPreloadPrompt}
@@ -184,14 +211,14 @@ export default function App() {
             />
           )}
 
-          {activeSection === 'promptlab' && (
+          {activeSection === 'promptlab' && puedeAcceder(currentRole, 'promptlab') && (
             <PromptLabView
               templates={promptTemplates}
               onSavePrompt={handleSavePrompt}
             />
           )}
 
-          {activeSection === 'agentstudio' && (
+          {activeSection === 'agentstudio' && puedeAcceder(currentRole, 'agentstudio') && (
             <AgentStudioView
               agents={agents}
               tools={AVAILABLE_AGENT_TOOLS}
@@ -200,39 +227,40 @@ export default function App() {
             />
           )}
 
-          {activeSection === 'automation' && (
+          {activeSection === 'automation' && puedeAcceder(currentRole, 'automation') && (
             <AutomationStudioView
               workflows={workflows}
               onSaveWorkflow={handleSaveWorkflow}
             />
           )}
 
-          {activeSection === 'knowledge' && (
+          {activeSection === 'knowledge' && puedeAcceder(currentRole, 'knowledge') && (
             <KnowledgeHubView
               documents={knowledgeDocs}
               onUploadDocument={handleUploadDocument}
             />
           )}
 
-          {activeSection === 'nocode' && (
+          {activeSection === 'nocode' && puedeAcceder(currentRole, 'nocode') && (
             <NoCodeBuilderView
               tools={noCodeTools}
               onSaveTool={handleSaveTool}
             />
           )}
 
-          {activeSection === 'analytics' && (
+          {activeSection === 'analytics' && puedeAcceder(currentRole, 'analytics') && (
             <AnalyticsCenterView currentOrg={currentOrg} />
           )}
 
-          {activeSection === 'marketplace' && <MarketplaceView />}
+          {activeSection === 'marketplace' && puedeAcceder(currentRole, 'marketplace') && <MarketplaceView />}
 
-          {activeSection === 'integrations' && (
+          {activeSection === 'integrations' && puedeAcceder(currentRole, 'integrations') && (
             <IntegrationsView connectors={connectors} />
           )}
 
-          {activeSection === 'admin' && (
+          {activeSection === 'admin' && puedeAcceder(currentRole, 'admin') && (
             <AdminView
+              rolActual={currentRole}
               organizations={organizations}
               currentOrg={currentOrg}
               onSelectOrg={setCurrentOrg}
@@ -241,6 +269,12 @@ export default function App() {
           )}
         </main>
       </div>
+
+      {avisoRol && (
+        <div role="status" className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-lg bg-slate-900 text-white text-sm font-medium shadow-lg">
+          {avisoRol}
+        </div>
+      )}
 
       {/* Official Verifiable Certificate Modal */}
       <CertificateModal

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, User, Globe, Menu } from 'lucide-react';
 import { UserProfile, TenantOrg } from '../../types';
+import { NOMBRE_ROL, puedeAcceder } from '../../auth/permisos';
 
 interface TopBarProps {
   user: UserProfile;
@@ -20,7 +21,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onAbrirMenu,
 }) => {
   return (
-    <header className="flex items-center justify-between gap-3 sm:gap-8 px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
+    <header className="flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
       {/* Zone 1: Single text element wordmark */}
       <div className="flex items-center gap-3 shrink-0">
         <button
@@ -41,16 +42,16 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           CPIENSA+ ACADEMY IA
         </a>
-        <span className="hidden sm:inline-block text-xs text-slate-400" aria-hidden="true">
+        <span className="hidden 2xl:inline-block text-xs text-slate-400" aria-hidden="true">
           ·
         </span>
-        <span className="hidden sm:inline-block text-xs font-medium text-slate-600 truncate max-w-[200px]">
+        <span className="hidden 2xl:inline-block text-xs font-medium text-slate-600 truncate max-w-[200px]">
           {currentOrg.name}
         </span>
       </div>
 
       {/* Zone 2: 4–5 clean single-line text navigation links */}
-      <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-slate-600">
+      <nav className="hidden min-[1400px]:flex items-center gap-5 text-sm font-medium text-slate-600">
         <button
           onClick={() => onNavigate('campus')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
@@ -75,14 +76,16 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           Prompt Lab
         </button>
-        <button
-          onClick={() => onNavigate('automation')}
-          className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-            activeSection === 'automation' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
-          }`}
-        >
-          Automatizaciones
-        </button>
+        {puedeAcceder(user.role, 'automation') && (
+          <button
+            onClick={() => onNavigate('automation')}
+            className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+              activeSection === 'automation' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+            }`}
+          >
+            Automatizaciones
+          </button>
+        )}
         <button
           onClick={() => onNavigate('marketplace')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
@@ -105,8 +108,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 text-xs text-slate-600">
-          <span className="font-medium text-slate-800 truncate max-w-[120px]">{user.name}</span>
-          <span className="text-slate-400">({user.role})</span>
+          <span className="hidden 2xl:inline font-medium text-slate-800 truncate max-w-[140px]">{user.name}</span>
+          <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 font-semibold whitespace-nowrap">
+            {NOMBRE_ROL[user.role]}
+          </span>
         </div>
       </div>
     </header>

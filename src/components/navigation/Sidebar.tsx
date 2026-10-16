@@ -13,8 +13,10 @@ import {
   Layers,
   Building2,
   UserCheck,
+  Lock,
 } from 'lucide-react';
 import { TenantOrg, UserRole } from '../../types';
+import { DESCRIPCION_ROL, NOMBRE_ROL, SECCIONES_POR_ROL, puedeAcceder, puedeCambiarInstitucion, rolMinimo } from '../../auth/permisos';
 
 interface SidebarProps {
   /** En pantallas pequeñas el menú es un panel deslizable. */
@@ -80,7 +82,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const org = organizations.find((o) => o.id === e.target.value);
             if (org) onSelectOrg(org);
           }}
-          className="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium"
+          disabled={!puedeCambiarInstitucion(currentRole)}
+          title={puedeCambiarInstitucion(currentRole) ? undefined : 'Solo el SuperAdmin puede cambiar de institución'}
+          className="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 font-medium disabled:opacity-70 disabled:cursor-not-allowed"
         >
           {organizations.map((org) => (
             <option key={org.id} value={org.id}>
@@ -102,27 +106,38 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
+          const permitido = puedeAcceder(currentRole, item.id);
           return (
             <button
               key={item.id}
               onClick={() => onSelectSection(item.id)}
+              title={permitido ? undefined : `Requiere rol ${NOMBRE_ROL[rolMinimo(item.id)]} o superior`}
+              aria-disabled={!permitido}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-sm font-semibold'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  ? permitido
+                    ? 'bg-blue-600 text-white shadow-sm font-semibold'
+                    : 'bg-slate-800 text-slate-400 font-semibold'
+                  : permitido
+                    ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                    : 'text-slate-500 hover:bg-slate-800/60'
               }`}
             >
               <div className="flex items-center gap-2.5 truncate">
                 <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span className="truncate">{item.label}</span>
               </div>
-              <span
-                className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded ${
-                  isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {item.code}
-              </span>
+              {permitido ? (
+                <span
+                  className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded ${
+                    isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {item.code}
+                </span>
+              ) : (
+                <Lock className="w-3.5 h-3.5 shrink-0 text-slate-500" aria-label="Bloqueado para este rol" />
+              )}
             </button>
           );
         })}
@@ -146,6 +161,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <option value="OrgAdmin">Administrador Institucional</option>
           <option value="SuperAdmin">SuperAdmin CPIENSA+</option>
         </select>
+        <p className="mt-1.5 text-[10px] leading-snug text-slate-400">
+          {DESCRIPCION_ROL[currentRole]}{' '}
+          <span className="font-mono text-emerald-400">
+            {SECCIONES_POR_ROL[currentRole].length}/{menuItems.length} subsistemas
+          </span>
+        </p>
 
         <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
           <span>Ley 1581 Habeas Data</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
   Building2,
@@ -13,6 +13,8 @@ import {
 import { TenantOrg, UserRole } from '../../types';
 
 interface AdminViewProps {
+  /** Rol activo: el OrgAdmin no gestiona otras instituciones ni asigna SuperAdmin. */
+  rolActual: UserRole;
   organizations: TenantOrg[];
   currentOrg: TenantOrg;
   onSelectOrg: (org: TenantOrg) => void;
@@ -20,6 +22,7 @@ interface AdminViewProps {
 }
 
 export const AdminView: React.FC<AdminViewProps> = ({
+  rolActual,
   organizations,
   currentOrg,
   onSelectOrg,
@@ -28,6 +31,11 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [activeTab, setActiveTab] = useState<'users' | 'organizations' | 'compliance' | 'plans'>(
     'users'
   );
+  const esSuperAdmin = rolActual === 'SuperAdmin';
+  // Si se baja de SuperAdmin estando en la pestaña de instituciones, volver a Usuarios
+  useEffect(() => {
+    if (!esSuperAdmin && activeTab === 'organizations') setActiveTab('users');
+  }, [esSuperAdmin, activeTab]);
 
   // Mock users list in the active org
   const [usersList, setUsersList] = useState([
@@ -135,6 +143,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           >
             Usuarios & Roles
           </button>
+          {esSuperAdmin && (
           <button
             onClick={() => setActiveTab('organizations')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
@@ -145,6 +154,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           >
             Instituciones Multi-Tenant
           </button>
+          )}
           <button
             onClick={() => setActiveTab('compliance')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
@@ -203,7 +213,9 @@ export const AdminView: React.FC<AdminViewProps> = ({
                           <option value="Estudiante">Estudiante</option>
                           <option value="Profesor/Tutor">Profesor/Tutor</option>
                           <option value="OrgAdmin">OrgAdmin</option>
-                          <option value="SuperAdmin">SuperAdmin</option>
+                          <option value="SuperAdmin" disabled={!esSuperAdmin}>
+                            SuperAdmin
+                          </option>
                         </select>
                       </td>
                       <td className="p-3">
@@ -226,7 +238,7 @@ export const AdminView: React.FC<AdminViewProps> = ({
           </div>
         )}
 
-        {activeTab === 'organizations' && (
+        {activeTab === 'organizations' && esSuperAdmin && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {organizations.map((org) => {
               const isSelected = org.id === currentOrg.id;

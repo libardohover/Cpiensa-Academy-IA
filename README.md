@@ -20,6 +20,21 @@ Plataforma académica multimodelo y multiinstitución para formación en intelig
 
 Incluye además el **Tutor Socrático** (panel lateral) y la **verificación de certificados**.
 
+## Roles y permisos (RBAC)
+
+El selector **Rol Activo** del menú lateral cambia lo que puede usar cada persona:
+
+| Subsistema | Estudiante | Profesor / Tutor | Administrador Institucional | SuperAdmin |
+|---|:-:|:-:|:-:|:-:|
+| Campus, AI Hub, Prompt Lab, Agent Studio, Knowledge Hub, No-Code Builder, Marketplace | ✓ | ✓ | ✓ | ✓ |
+| Automation Studio, Analytics Center | | ✓ | ✓ | ✓ |
+| Conectores Enterprise, Administración | | | ✓ | ✓ |
+| Cambiar de institución y gestionar instituciones (multi-tenant), asignar rol SuperAdmin | | | | ✓ |
+
+- Los subsistemas no permitidos aparecen con 🔒 en el menú; al abrirlos se muestra **Acceso restringido** con el rol mínimo requerido.
+- La matriz está en `src/auth/permisos.ts` (`SECCIONES_POR_ROL`).
+- Es control de acceso **en la interfaz** para la demostración. En producción, cada ruta de la API también debe validar el rol del usuario autenticado.
+
 ## Tecnologías
 
 React 19 · TypeScript 7 · Vite 8 · Tailwind CSS 4 · Express 4 · Google Gemini (`@google/genai`)
@@ -121,6 +136,7 @@ Para producción, el registro de certificados, el corpus RAG y los flujos deben 
 ├── scripts/build-server.mjs   # Compila el servidor con esbuild
 ├── src/
 │   ├── App.tsx                # Navegación entre subsistemas
+│   ├── auth/permisos.ts       # Matriz de roles y permisos (RBAC)
 │   ├── components/            # Un directorio por subsistema
 │   ├── data/                  # Cursos y datos de ejemplo
 │   ├── assets/images/         # Imágenes
