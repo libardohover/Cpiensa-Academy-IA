@@ -10,6 +10,8 @@ interface MenuUsuarioProps {
   onAbrirTutor: () => void;
   onCambiarRol: (rol: UserRole) => void;
   onCerrarSesion: () => void;
+  /** Solo en el entorno de pruebas. */
+  rolEditable: boolean;
 }
 
 /** Menú desplegable del usuario: datos de la cuenta, cambio de rol y cierre de sesión. */
@@ -20,6 +22,7 @@ export const MenuUsuario: React.FC<MenuUsuarioProps> = ({
   onAbrirTutor,
   onCambiarRol,
   onCerrarSesion,
+  rolEditable,
 }) => {
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -97,9 +100,10 @@ export const MenuUsuario: React.FC<MenuUsuarioProps> = ({
             </button>
           </div>
 
+          {rolEditable ? (
           <div className="py-1 border-t border-slate-100">
             <p className="px-4 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-              <UserCheck className="w-3 h-3" /> Cambiar rol
+              <UserCheck className="w-3 h-3" /> Cambiar rol (demostración)
             </p>
             {ORDEN_ROLES.map((r) => (
               <button
@@ -116,6 +120,11 @@ export const MenuUsuario: React.FC<MenuUsuarioProps> = ({
               </button>
             ))}
           </div>
+          ) : (
+            <div className="px-4 py-2 border-t border-slate-100 text-xs text-slate-600">
+              Rol asignado: <strong className="text-slate-900">{NOMBRE_ROL[user.role]}</strong>
+            </div>
+          )}
 
           <div className="py-1 border-t border-slate-100">
             <button

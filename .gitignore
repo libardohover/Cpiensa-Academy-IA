@@ -17,3 +17,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Datos de cuentas, sesiones, auditoría y correos de prueba (información personal)
+datos/

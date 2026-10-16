@@ -1,3 +1,4 @@
+import { INSTITUCIONES } from './instituciones';
 import avatarDirector from '../assets/images/avatar_director_pedagogico_1792081707279.jpg';
 import {
   TenantOrg,
@@ -12,35 +13,7 @@ import {
   IntegrationConnector,
 } from '../types';
 
-export const INITIAL_ORGS: TenantOrg[] = [
-  {
-    id: 'org-cpiensa-central',
-    name: 'Corporación CPIENSA+ Sede Central',
-    slug: 'cpiensa-central',
-    country: 'Colombia',
-    studentCount: 1420,
-    activePlan: 'Institución Enterprise',
-    logoPlaceholder: 'CPI+',
-  },
-  {
-    id: 'org-upb-aliada',
-    name: 'Universidad Aliada de Innovación',
-    slug: 'universidad-aliada',
-    country: 'Colombia',
-    studentCount: 860,
-    activePlan: 'Universidad Campus',
-    logoPlaceholder: 'UAI',
-  },
-  {
-    id: 'org-techcorp-latam',
-    name: 'TechCorp Latam Solutions',
-    slug: 'techcorp-latam',
-    country: 'Regional',
-    studentCount: 310,
-    activePlan: 'Corporativo Pro',
-    logoPlaceholder: 'TCL',
-  },
-];
+export const INITIAL_ORGS: TenantOrg[] = INSTITUCIONES;
 
 export const INITIAL_USER: UserProfile = {
   id: 'usr-9481',

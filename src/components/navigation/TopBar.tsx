@@ -14,6 +14,7 @@ interface TopBarProps {
   onAbrirMenu: () => void;
   onCambiarRol: (rol: UserRole) => void;
   onCerrarSesion: () => void;
+  rolEditable: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -25,6 +26,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   onAbrirMenu,
   onCambiarRol,
   onCerrarSesion,
+  rolEditable,
 }) => {
   return (
     <header className="flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
@@ -133,6 +135,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onAbrirTutor={onOpenTutor}
             onCambiarRol={onCambiarRol}
             onCerrarSesion={onCerrarSesion}
+            rolEditable={rolEditable}
           />
         </div>
       </div>

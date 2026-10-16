@@ -5,7 +5,9 @@ import { AccesoRestringido } from './components/navigation/AccesoRestringido';
 import { NOMBRE_ROL, puedeAcceder } from './auth/permisos';
 import { CampusView } from './components/campus/CampusView';
 import { InicioView } from './components/inicio/InicioView';
-import { PantallaIngreso } from './components/navigation/PantallaIngreso';
+import { PantallaIngreso, type Vista, type Aviso } from './components/navigation/PantallaIngreso';
+import { AccesosView } from './components/accesos/AccesosView';
+import { acceso, esErrorApi, vigilarSesion, type ConfigAcceso, type UsuarioSesion } from './auth/cliente';
 import { AIHubView } from './components/aihub/AIHubView';
 import { PromptLabView } from './components/promptlab/PromptLabView';
 import { AgentStudioView } from './components/agentstudio/AgentStudioView';
@@ -35,6 +37,7 @@ import {
 import { TenantOrg, UserRole, UserProfile, PromptVersion, AgentDefinition, Workflow, KnowledgeDocument, NoCodeTool } from './types';
 
 const NOMBRES_SECCION: Record<string, string> = {
+  solicitudes: 'Solicitudes de acceso',
   inicio: 'Inicio',
   campus: 'Campus LMS',
   aihub: 'AI Hub Gateway',
@@ -49,6 +52,30 @@ const NOMBRES_SECCION: Record<string, string> = {
   admin: 'Administración & RBAC',
 };
 
+/** Lee los parámetros de los enlaces enviados por correo (verificación, contraseña, panel). */
+const PARAMS = new URLSearchParams(window.location.search);
+const TOKEN = PARAMS.get('token') ?? '';
+const VISTA_DESDE_ENLACE: Vista | null =
+  PARAMS.get('accion') === 'verificar' && TOKEN
+    ? { tipo: 'verificar', token: TOKEN }
+    : PARAMS.get('accion') === 'contrasena' && TOKEN
+      ? { tipo: 'contrasena', token: TOKEN, modo: 'contrasena' }
+      : PARAMS.get('accion') === 'recuperar' && TOKEN
+        ? { tipo: 'contrasena', token: TOKEN, modo: 'recuperar' }
+        : null;
+const PANEL_DESDE_ENLACE = PARAMS.get('panel') === 'solicitudes' ? PARAMS.get('id') : null;
+
+function leerProgreso(u: UsuarioSesion): string[] {
+  try {
+    const guardado = localStorage.getItem(`cpiensa_progreso_${u.id}`);
+    if (guardado) return JSON.parse(guardado);
+  } catch {
+    /* sin almacenamiento disponible */
+  }
+  // La cuenta de demostración arranca con el progreso de ejemplo; las reales, en cero.
+  return u.esDemo ? INITIAL_USER.completedLessons : [];
+}
+
 export default function App() {
   const [activeSection, setActiveSection] = useState<string>('inicio');
   const [leccionInicial, setLeccionInicial] = useState<string | undefined>(undefined);
@@ -59,23 +86,8 @@ export default function App() {
   const [user, setUser] = useState<UserProfile>(INITIAL_USER);
   const [currentRole, setCurrentRole] = useState<UserRole>(INITIAL_USER.role);
 
-  // LMS Progress State (Persistent in localStorage)
-  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('cpiensa_completed_lessons');
-      return saved ? JSON.parse(saved) : INITIAL_USER.completedLessons;
-    } catch {
-      return INITIAL_USER.completedLessons;
-    }
-  });
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('cpiensa_completed_lessons', JSON.stringify(completedLessonIds));
-    } catch (e) {
-      console.warn('LocalStorage error', e);
-    }
-  }, [completedLessonIds]);
+  // Progreso del Campus (se carga por persona al iniciar sesión)
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
 
   // Subsystems States
   const [models] = useState(INITIAL_MODELS);
@@ -111,10 +123,16 @@ export default function App() {
   };
 
   const [avisoRol, setAvisoRol] = useState<string | null>(null);
-  const handleRoleChange = (role: UserRole) => {
-    setCurrentRole(role);
-    setUser((prev) => ({ ...prev, role }));
-    setAvisoRol(`Ahora navegas como ${NOMBRE_ROL[role]}`);
+  // Solo en el entorno de pruebas: el rol de una cuenta real lo asigna un administrador.
+  const handleRoleChange = async (role: UserRole) => {
+    if (!usuarioSesion?.esDemo) return;
+    try {
+      const r = await acceso.demoRol(role);
+      aplicarUsuario(r.usuario, false);
+      setAvisoRol(`Ahora navegas como ${NOMBRE_ROL[role]}`);
+    } catch (e) {
+      setAvisoRol(esErrorApi(e) ? e.error : 'No se pudo cambiar el rol.');
+    }
     window.setTimeout(() => setAvisoRol(null), 3000);
   };
 
@@ -150,47 +168,107 @@ export default function App() {
     setNoCodeTools((prev) => [tool, ...prev]);
   };
 
-  // Sesión de la demostración (se recuerda en este navegador)
-  const [sesionActiva, setSesionActiva] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('cpiensa_sesion') !== 'cerrada';
-    } catch {
-      return true;
-    }
-  });
-  const [salioRecien, setSalioRecien] = useState(false);
-  const guardarSesion = (valor: 'activa' | 'cerrada') => {
-    try {
-      localStorage.setItem('cpiensa_sesion', valor);
-    } catch {
-      /* sin almacenamiento: la sesión vive solo en memoria */
-    }
-  };
-  const handleCerrarSesion = () => {
-    setTutorOpen(false);
-    setCertificateOpen(false);
-    setMenuAbierto(false);
-    setSalioRecien(true);
-    setSesionActiva(false);
-    guardarSesion('cerrada');
-  };
-  const handleIngresar = (rol: UserRole) => {
-    setCurrentRole(rol);
-    setUser((prev) => ({ ...prev, role: rol }));
-    setActiveSection('inicio');
-    setSalioRecien(false);
-    setSesionActiva(true);
-    guardarSesion('activa');
-  };
-
   const [menuAbierto, setMenuAbierto] = useState(false);
   const irASeccion = (seccion: string) => {
     setActiveSection(seccion);
     setMenuAbierto(false);
   };
 
-  if (!sesionActiva) {
-    return <PantallaIngreso user={user} sesionCerrada={salioRecien} onIngresar={handleIngresar} />;
+  // ---------- Sesión real (servidor) ----------
+  const [cargandoSesion, setCargandoSesion] = useState(true);
+  const [usuarioSesion, setUsuarioSesion] = useState<UsuarioSesion | null>(null);
+  const [configAcceso, setConfigAcceso] = useState<ConfigAcceso | null>(null);
+  const [vistaIngreso, setVistaIngreso] = useState<Vista>(VISTA_DESDE_ENLACE ?? { tipo: 'ingresar' });
+  const [avisoIngreso, setAvisoIngreso] = useState<Aviso | null>(null);
+  const [solicitudInicial, setSolicitudInicial] = useState<string | null>(PANEL_DESDE_ENLACE);
+
+  const aplicarUsuario = (u: UsuarioSesion, irAInicio = true) => {
+    setUsuarioSesion(u);
+    setCurrentRole(u.rol);
+    setUser((prev) => ({ ...prev, id: u.id, name: u.nombre, email: u.correo, role: u.rol, orgId: u.institucionId }));
+    setCurrentOrg((prev) => organizations.find((o) => o.id === u.institucionId) ?? prev);
+    setCompletedLessonIds(leerProgreso(u));
+    if (irAInicio) {
+      setActiveSection(solicitudInicial && puedeAcceder(u.rol, 'solicitudes') ? 'solicitudes' : 'inicio');
+    }
+  };
+
+  useEffect(() => {
+    // Se quitan los tokens de la barra de direcciones apenas se leen.
+    if (window.location.search) window.history.replaceState(null, '', window.location.pathname);
+    acceso.config().then(setConfigAcceso).catch(() => setConfigAcceso(null));
+    if (VISTA_DESDE_ENLACE) {
+      setCargandoSesion(false);
+      return;
+    }
+    acceso
+      .sesion()
+      .then((r) => aplicarUsuario(r.usuario))
+      .catch((e) => {
+        if (esErrorApi(e) && e.codigo === 'sesion_vencida') setAvisoIngreso({ tipo: 'error', texto: e.error });
+      })
+      .finally(() => setCargandoSesion(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Si el servidor dice que la sesión terminó, se vuelve al ingreso.
+  useEffect(
+    () =>
+      vigilarSesion((mensaje) => {
+        setUsuarioSesion(null);
+        setTutorOpen(false);
+        setCertificateOpen(false);
+        setVistaIngreso({ tipo: 'ingresar' });
+        setAvisoIngreso({ tipo: 'error', texto: mensaje });
+      }),
+    [],
+  );
+
+  // El progreso del Campus se guarda por persona en este navegador.
+  useEffect(() => {
+    if (!usuarioSesion) return;
+    try {
+      localStorage.setItem(`cpiensa_progreso_${usuarioSesion.id}`, JSON.stringify(completedLessonIds));
+    } catch {
+      /* sin almacenamiento disponible */
+    }
+  }, [completedLessonIds, usuarioSesion]);
+
+  const handleCerrarSesion = async () => {
+    try {
+      await acceso.salir();
+    } catch {
+      /* aunque falle la red, se cierra en la interfaz */
+    }
+    setTutorOpen(false);
+    setCertificateOpen(false);
+    setMenuAbierto(false);
+    setUsuarioSesion(null);
+    setVistaIngreso({ tipo: 'ingresar' });
+    setAvisoIngreso({ tipo: 'exito', texto: 'Cerraste sesión correctamente.' });
+  };
+
+  if (cargandoSesion) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-900 text-slate-300 text-sm" role="status">
+        Cargando CPIENSA+ ACADEMY IA…
+      </div>
+    );
+  }
+
+  if (!usuarioSesion) {
+    return (
+      <PantallaIngreso
+        key={`${vistaIngreso.tipo}-${avisoIngreso?.texto ?? ''}`}
+        config={configAcceso}
+        vistaInicial={vistaIngreso}
+        avisoInicial={avisoIngreso}
+        onIngreso={(u) => {
+          setAvisoIngreso(null);
+          aplicarUsuario(u);
+        }}
+      />
+    );
   }
 
   return (
@@ -206,6 +284,7 @@ export default function App() {
         onSelectOrg={setCurrentOrg}
         currentRole={currentRole}
         onChangeRole={handleRoleChange}
+        rolEditable={usuarioSesion.esDemo}
       />
 
       {/* Main View Area */}
@@ -223,6 +302,7 @@ export default function App() {
           onAbrirMenu={() => setMenuAbierto(true)}
           onCambiarRol={handleRoleChange}
           onCerrarSesion={handleCerrarSesion}
+          rolEditable={usuarioSesion.esDemo}
         />
 
         {/* View Router */}
@@ -321,6 +401,14 @@ export default function App() {
 
           {activeSection === 'integrations' && puedeAcceder(currentRole, 'integrations') && (
             <IntegrationsView connectors={connectors} />
+          )}
+
+          {activeSection === 'solicitudes' && puedeAcceder(currentRole, 'solicitudes') && (
+            <AccesosView
+              usuario={usuarioSesion}
+              instituciones={configAcceso?.instituciones ?? organizations.map((o) => ({ id: o.id, nombre: o.name }))}
+              solicitudInicial={solicitudInicial}
+            />
           )}
 
           {activeSection === 'admin' && puedeAcceder(currentRole, 'admin') && (

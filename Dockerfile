@@ -13,6 +13,9 @@ ENV NODE_ENV=production PORT=3000 HOST=0.0.0.0
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
+# Cuentas, sesiones y auditoría: deben persistir fuera del contenedor
+RUN mkdir -p /app/datos && chown node:node /app/datos
+VOLUME ["/app/datos"]
 EXPOSE 3000
 USER node
 CMD ["node", "dist/server.cjs"]

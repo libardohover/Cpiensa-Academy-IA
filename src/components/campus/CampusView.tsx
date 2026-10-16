@@ -98,6 +98,7 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
           systemInstruction:
             'Eres un docente universitario riguroso, formativo y preciso. Evalúa conforme a la rúbrica oficial.',
           model: 'gemini-3.8-flash',
+          servicio: 'tutor-ia',
         }),
       });
       const data = await response.json();

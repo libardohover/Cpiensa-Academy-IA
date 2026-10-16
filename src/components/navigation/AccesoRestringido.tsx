@@ -1,7 +1,7 @@
 import React from 'react';
 import { Lock, GraduationCap } from 'lucide-react';
 import type { UserRole } from '../../types';
-import { NOMBRE_ROL, rolMinimo } from '../../auth/permisos';
+import { NOMBRE_ROL, rolesConAcceso } from '../../auth/permisos';
 
 interface Props {
   seccion: string;
@@ -12,7 +12,7 @@ interface Props {
 
 /** Pantalla que se muestra cuando el rol activo no tiene acceso a un subsistema. */
 export const AccesoRestringido: React.FC<Props> = ({ seccion, nombreSeccion, rolActual, onIrAlCampus }) => {
-  const minimo = rolMinimo(seccion);
+  const roles = rolesConAcceso(seccion).map((r) => NOMBRE_ROL[r]).join(', ');
   return (
     <div className="flex-1 flex items-center justify-center p-6 bg-slate-50">
       <div role="alert" className="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8 text-center">
@@ -24,8 +24,7 @@ export const AccesoRestringido: React.FC<Props> = ({ seccion, nombreSeccion, rol
           El rol <strong>{NOMBRE_ROL[rolActual]}</strong> no tiene acceso a <strong>{nombreSeccion}</strong>.
         </p>
         <p className="mt-1 text-xs text-slate-500">
-          Disponible desde el rol <strong>{NOMBRE_ROL[minimo]}</strong>. Cambia el rol activo en el menú lateral o
-          solicita el permiso al administrador de tu institución.
+          Disponible para: <strong>{roles}</strong>. Si necesitas este acceso, solicítalo a la administración de tu institución.
         </p>
         <button
           onClick={onIrAlCampus}

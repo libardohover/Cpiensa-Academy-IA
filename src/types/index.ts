@@ -8,7 +8,15 @@ export type TenantOrg = {
   logoPlaceholder: string;
 };
 
-export type UserRole = 'SuperAdmin' | 'OrgAdmin' | 'Profesor/Tutor' | 'Estudiante';
+export type UserRole =
+  | 'SuperAdmin'
+  | 'OrgAdmin'
+  | 'Coordinador'
+  | 'Profesor/Tutor'
+  | 'CreadorIA'
+  | 'Auditor'
+  | 'Estudiante'
+  | 'Invitado';
 
 export type UserProfile = {
   id: string;

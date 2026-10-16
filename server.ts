@@ -3,6 +3,11 @@ import express from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
+import { exigirSeccion, exigirSesion, modoDemo, prepararAdministradorInicial, rutasAutenticacion, type ReqConSesion } from './server/auth/rutas';
+import { verificarOrigen } from './server/auth/seguridad';
+import { auditar } from './server/auth/almacen';
+import { CORREO_APROBACIONES, smtpConfigurado } from './server/auth/correo';
+import { SERVICIOS } from './src/auth/permisos';
 
 // En el paquete compilado (dist/server.cjs) esbuild fija NODE_ENV="production".
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -12,7 +17,24 @@ const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 app.disable('x-powered-by');
+app.set('trust proxy', process.env.TRUST_PROXY === 'true');
 app.use(express.json({ limit: '10mb' }));
+
+// Cabeceras de seguridad básicas
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'same-origin');
+  next();
+});
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+app.use('/api', verificarOrigen);
+
+// Autenticación, solicitudes de acceso y panel de aprobación (públicas o con su propio control)
+app.use('/api', rutasAutenticacion());
 
 // Cliente de Gemini (solo si hay una clave real configurada)
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -95,8 +117,15 @@ const MODEL_CATALOG = [
   },
 ];
 
+// A partir de aquí, toda la API exige sesión (salvo /api/health y la verificación pública de certificados).
+const RUTAS_PUBLICAS = [/^\/health$/, /^\/certificates\//];
+app.use('/api', (req, res, next) => {
+  if (RUTAS_PUBLICAS.some((r) => r.test(req.path))) return next();
+  exigirSesion(req as ReqConSesion, res, next);
+});
+
 // API: Get Model Catalog
-app.get('/api/ai/models', (_req, res) => {
+app.get('/api/ai/models', exigirSeccion('aihub', 'promptlab', 'agentstudio'), (_req, res) => {
   res.json({
     models: MODEL_CATALOG,
     gatewayStatus: 'healthy',
@@ -105,7 +134,13 @@ app.get('/api/ai/models', (_req, res) => {
 });
 
 // API: Generate Content through AI Hub Gateway
-app.post('/api/ai/generate', async (req, res) => {
+const TUTOR = SERVICIOS.find((s) => s.id === 'servicio:tutor-ia')!;
+app.post('/api/ai/generate', exigirSeccion('campus', 'aihub', 'promptlab', 'agentstudio', 'nocode'), async (req: ReqConSesion, res) => {
+  // El Tutor IA actúa como servicio con permisos propios y queda registrado en nombre del usuario.
+  if (req.body?.servicio === 'tutor-ia') {
+    if (!TUTOR.permisos.includes('ai:generar')) return res.status(403).json({ error: 'Servicio sin permiso.' });
+    auditar({ actor: TUTOR.id, accion: 'tutor_consulta', objetivo: req.usuario!.correo, institucionId: req.usuario!.institucionId });
+  }
   const startTime = Date.now();
   const {
     prompt,
@@ -213,7 +248,7 @@ Respuesta verificada y lista para integración en su flujo de trabajo.`;
 });
 
 // API: Knowledge Base Query (RAG Simulator & Semantic Matcher)
-app.post('/api/knowledge/query', (req, res) => {
+app.post('/api/knowledge/query', exigirSeccion('knowledge', 'campus'), (req, res) => {
   const { query, documentId, topK = 3 } = req.body;
   if (!query) return res.status(400).json({ error: 'Query requerido' });
 
@@ -310,7 +345,7 @@ app.post('/api/knowledge/query', (req, res) => {
 });
 
 // API: Automation Flow Execution
-app.post('/api/automation/execute', (req, res) => {
+app.post('/api/automation/execute', exigirSeccion('automation'), (req, res) => {
   const { workflowId, workflowName, inputPayload, requireApproval = false } = req.body;
   const executionId = `run_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
@@ -437,7 +472,11 @@ async function startServer() {
     console.log(`  ➜ Modo:    ${IS_PROD ? 'producción' : 'desarrollo'}`);
     console.log(`  ➜ Local:   http://localhost:${PORT}`);
     console.log(`  ➜ Red:     http://<IP-de-este-equipo>:${PORT}`);
-    console.log(`  ➜ IA:      ${geminiConfigurado ? 'Gemini conectado' : 'modo simulado (sin GEMINI_API_KEY)'}\n`);
+    console.log(`  ➜ IA:      ${geminiConfigurado ? 'Gemini conectado' : 'modo simulado (sin GEMINI_API_KEY)'}`);
+    console.log(`  ➜ Acceso:  ${modoDemo() ? 'ingreso real + modo demostración habilitado' : 'ingreso real (modo demostración desactivado)'}`);
+    console.log(`  ➜ Correo:  ${smtpConfigurado() ? 'SMTP configurado' : 'sin SMTP: los correos se guardan en datos/correos/'} · aprobaciones: ${CORREO_APROBACIONES}\n`);
+    const base = process.env.APP_URL?.trim().replace(/\/$/, '') || `http://localhost:${PORT}`;
+    prepararAdministradorInicial(base).catch((err) => console.error('[acceso] No se pudo preparar el administrador inicial:', err));
   });
   server.on('error', (err: NodeJS.ErrnoException) => {
     console.error(err.code === 'EADDRINUSE' ? `[CPIENSA+] El puerto ${PORT} ya está en uso. Define otro PORT en .env.local` : err);

@@ -15,10 +15,11 @@ import {
   UserCheck,
   Lock,
   Home,
+  UserPlus,
 } from 'lucide-react';
 import { TenantOrg, UserRole } from '../../types';
 import simboloCpiensa from '../../assets/images/cpiensa-simbolo.png';
-import { DESCRIPCION_ROL, NOMBRE_ROL, SECCIONES_POR_ROL, puedeAcceder, puedeCambiarInstitucion, rolMinimo } from '../../auth/permisos';
+import { DESCRIPCION_ROL, NOMBRE_ROL, ORDEN_ROLES, SECCIONES_POR_ROL, puedeAcceder, puedeCambiarInstitucion, rolesConAcceso } from '../../auth/permisos';
 
 interface SidebarProps {
   /** En pantallas pequeñas el menú es un panel deslizable. */
@@ -31,6 +32,8 @@ interface SidebarProps {
   onSelectOrg: (org: TenantOrg) => void;
   currentRole: UserRole;
   onChangeRole: (role: UserRole) => void;
+  /** Solo en el entorno de pruebas se puede cambiar de rol desde el menú. */
+  rolEditable: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -43,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectOrg,
   currentRole,
   onChangeRole,
+  rolEditable,
 }) => {
   const menuItems = [
     { id: 'inicio', label: 'Inicio', icon: Home, code: '' },
@@ -56,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'analytics', label: 'Analytics Center', icon: BarChart3, code: 'H' },
     { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, code: 'J' },
     { id: 'integrations', label: 'Conectores Enterprise', icon: Layers, code: 'K' },
+    { id: 'solicitudes', label: 'Solicitudes de acceso', icon: UserPlus, code: 'L' },
     { id: 'admin', label: 'Administración & RBAC', icon: ShieldCheck, code: 'I' },
   ];
 
@@ -129,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.id}
               onClick={() => onSelectSection(item.id)}
-              title={permitido ? undefined : `Requiere rol ${NOMBRE_ROL[rolMinimo(item.id)]} o superior`}
+              title={permitido ? undefined : `Disponible para: ${rolesConAcceso(item.id).map((r) => NOMBRE_ROL[r]).join(', ')}`}
               aria-disabled={!permitido}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                 isActive
@@ -168,17 +173,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <UserCheck className="w-3 h-3 text-emerald-400" />
             <span>Rol Activo</span>
           </span>
+          {rolEditable && <span className="text-[9px] font-bold uppercase text-amber-400">Demostración</span>}
         </div>
-        <select
-          value={currentRole}
-          onChange={(e) => onChangeRole(e.target.value as UserRole)}
-          className="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="Estudiante">Estudiante</option>
-          <option value="Profesor/Tutor">Profesor / Tutor</option>
-          <option value="OrgAdmin">Administrador Institucional</option>
-          <option value="SuperAdmin">SuperAdmin CPIENSA+</option>
-        </select>
+        {rolEditable ? (
+          <select
+            value={currentRole}
+            onChange={(e) => onChangeRole(e.target.value as UserRole)}
+            aria-label="Rol activo (demostración)"
+            className="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            {ORDEN_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {NOMBRE_ROL[r]}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <p className="w-full bg-slate-800 border border-slate-700 text-xs text-white rounded-md px-2 py-1.5 font-semibold" title="Asignado por la administración">
+            {NOMBRE_ROL[currentRole]}
+          </p>
+        )}
         <p className="mt-1.5 text-[10px] leading-snug text-slate-400">
           {DESCRIPCION_ROL[currentRole]}{' '}
           <span className="font-mono text-emerald-400">

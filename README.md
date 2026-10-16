@@ -34,24 +34,77 @@ Los 10 módulos tienen dos ejes transversales, visibles en cada lección (tarjet
 
 El Tutor Socrático, el evaluador de ejercicios, el Knowledge Hub y el certificado también incorporan ambos ejes. Los textos se editan en `src/data/ejesTransversales.ts`.
 
-## Sesión
+## Acceso y aprobación de cuentas
 
-El menú del usuario (iniciales y rol, arriba a la derecha) muestra los datos de la cuenta, permite ir al Inicio, abrir el Tutor, cambiar de rol y **Cerrar sesión**. Al cerrar sesión aparece la pantalla de ingreso, donde se elige el rol para volver a entrar. En esta demostración el ingreso no pide contraseña; en producción debe conectarse a la autenticación de la institución.
+La plataforma tiene ingreso real con correo y contraseña. Solo entran las cuentas **verificadas, aprobadas y activas**; registrarse no concede acceso.
+
+### Recorrido
+
+1. **Solicitar acceso** (pantalla de ingreso): nombre, correo, institución, rol solicitado, motivo opcional y autorización de datos (Ley 1581).
+2. El solicitante recibe un **enlace de verificación** (vence en 24 h) y confirma su correo.
+3. La plataforma envía la solicitud a **piensacorporacion@gmail.com** (`APROBACIONES_CORREO`) con nombre, correo, institución, rol solicitado, fecha y un enlace al panel. El enlace **no autoriza nada por sí solo**: hay que iniciar sesión con una cuenta administradora.
+4. En **Solicitudes de acceso** (subsistema L), el administrador **aprueba** (confirma la institución y asigna el rol y sus permisos), **rechaza** o **pide información adicional**.
+5. El solicitante recibe la decisión por correo y, si fue aprobada, un **enlace personal de un solo uso** para establecer su contraseña (vence en 48 h).
+6. piensacorporacion@gmail.com recibe la **confirmación de cada decisión**, que queda en la **auditoría**.
+
+Los correos nunca incluyen contraseñas ni credenciales.
+
+### Estados de una cuenta
+
+| Estado | Puede ingresar |
+|---|:-:|
+| Pendiente de verificación | No |
+| Pendiente de aprobación | No |
+| Activa (aprobada y con contraseña establecida) | Sí |
+| Suspendida | No (se cierran sus sesiones) |
+| Desactivada (incluye solicitudes rechazadas) | No |
+
+### Primer arranque: cuenta administradora
+
+Si no existe ningún SuperAdmin, el servidor crea la cuenta **piensacorporacion@gmail.com** (o `ADMIN_INICIAL_CORREO`) y le envía un enlace para establecer la contraseña (vence en 72 h). No hay contraseñas por defecto. Si el enlace vence, usa **¿Olvidaste tu contraseña?** con ese correo.
+
+### Envío de correos
+
+- **Con SMTP** (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` en `.env.local`): los correos se envían de verdad. Para Gmail, `SMTP_PASS` es una **contraseña de aplicación** (Cuenta de Google → Seguridad → Verificación en dos pasos → Contraseñas de aplicaciones), no la contraseña normal.
+- **Sin SMTP**: cada correo se guarda como archivo `.html` en `datos/correos/`. Ábrelo con el navegador para usar sus enlaces. Sirve para probar en el equipo.
+- Los enlaces de los correos usan `APP_URL`. Si otros equipos usarán la plataforma, define allí la dirección real.
+
+### Seguridad
+
+| Medida | Cómo |
+|---|---|
+| Contraseñas | `scrypt` con sal aleatoria; mínimo 10 caracteres con letras y números, sin partes del correo |
+| Sesiones | Cookie `HttpOnly` + `SameSite=Strict` (+ `Secure` con HTTPS); vencen a las 8 h o tras 60 min sin actividad; el servidor guarda solo su hash |
+| Enlaces y códigos | Aleatorios, de un solo uso, con vencimiento; se guardan solo como hash; se quitan de la barra de direcciones al abrirlos |
+| Cuentas administrativas | Código adicional de 6 dígitos enviado al correo en cada ingreso (vence en 10 min, máx. 5 intentos) |
+| Intentos repetidos | 5 intentos fallidos por correo en 15 min → bloqueo de 15 min; límites por IP en ingreso, solicitudes y recuperación |
+| Mensajes | Generales cuando revelarían si una cuenta existe (ingreso fallido, recuperación, solicitud repetida) |
+| Permisos | El servidor comprueba sesión, rol e institución en **cada** operación protegida; el rol viene de la cuenta aprobada |
+| Instituciones | El Administrador Institucional y el Auditor solo ven y gestionan su institución; el SuperAdmin, todas |
+| Origen | Las peticiones que cambian datos deben venir de la propia plataforma |
+| Auditoría | Registro de solo adición en `datos/auditoria.jsonl` (solicitudes, decisiones, ingresos, fallos, suspensiones, uso del Tutor) |
+
+`datos/` contiene información personal y está excluida de Git. Haz copia de seguridad de esa carpeta.
+
+### Modo demostración (solo pruebas)
+
+Con `MODO_DEMO=true` (o con `npm run dev`), la pantalla de ingreso muestra **Entrar en demostración** con selector de rol, y el rol se puede cambiar desde el menú. Las sesiones de demostración no ven ni deciden solicitudes reales. En el servidor de producción (`npm start`) está **desactivado** salvo que se active de forma explícita.
 
 ## Roles y permisos (RBAC)
 
-El selector **Rol Activo** del menú lateral cambia lo que puede usar cada persona:
+| Rol | Puede usar |
+|---|---|
+| Invitado autorizado | Inicio y Campus (contenidos habilitados) |
+| Estudiante | Inicio, Campus, AI Hub, Prompt Lab, Agent Studio, Knowledge Hub, No-Code Builder, Marketplace |
+| Instructor / Evaluador | Lo del estudiante + Automation Studio y Analytics Center |
+| Coordinador | Inicio, Campus, Knowledge Hub, Analytics Center, Marketplace |
+| Creador IA | Inicio, Campus, laboratorios de IA (AI Hub, Prompt Lab, Agent Studio, No-Code, Automation), Knowledge Hub, Marketplace |
+| Auditor | Inicio, Analytics Center y Solicitudes de acceso **en solo lectura** |
+| Administrador Institucional | Todo, incluidas Solicitudes de acceso, Conectores y Administración, **solo de su institución** |
+| SuperAdmin | Todo, en todas las instituciones; único que asigna el rol SuperAdmin |
 
-| Subsistema | Estudiante | Profesor / Tutor | Administrador Institucional | SuperAdmin |
-|---|:-:|:-:|:-:|:-:|
-| Inicio, Campus, AI Hub, Prompt Lab, Agent Studio, Knowledge Hub, No-Code Builder, Marketplace | ✓ | ✓ | ✓ | ✓ |
-| Automation Studio, Analytics Center | | ✓ | ✓ | ✓ |
-| Conectores Enterprise, Administración | | | ✓ | ✓ |
-| Cambiar de institución y gestionar instituciones (multi-tenant), asignar rol SuperAdmin | | | | ✓ |
-
-- Los subsistemas no permitidos aparecen con 🔒 en el menú; al abrirlos se muestra **Acceso restringido** con el rol mínimo requerido.
-- La matriz está en `src/auth/permisos.ts` (`SECCIONES_POR_ROL`).
-- Es control de acceso **en la interfaz** para la demostración. En producción, cada ruta de la API también debe validar el rol del usuario autenticado.
+- La matriz está en `src/auth/permisos.ts` y la usan **el navegador y el servidor**.
+- El **Tutor IA** es un servicio de la plataforma (`servicio:tutor-ia`), con permisos propios y sin cuenta humana; cada consulta queda en la auditoría a nombre de quien la originó.
 
 ## Tecnologías
 
@@ -121,7 +174,16 @@ docker run -d -p 3000:3000 --env-file .env.local --name cpiensa-academy cpiensa-
 | `POST` | `/api/ai/generate` | Generación: `{ prompt, systemInstruction?, model?, temperature? }` |
 | `POST` | `/api/knowledge/query` | Consulta al Knowledge Hub: `{ query, topK? }` |
 | `POST` | `/api/automation/execute` | Ejecución de un flujo: `{ workflowId, inputPayload?, requireApproval? }` |
-| `GET` | `/api/certificates/:codigo` | Verificación de certificado (404 si el código no existe) |
+| `GET` | `/api/certificates/:codigo` | Verificación de certificado (pública; 404 si el código no existe) |
+| `POST` | `/api/auth/solicitudes` · `/verificar` | Solicitud de acceso y verificación del correo |
+| `POST` | `/api/auth/ingresar` · `/codigo` · `/salir` | Ingreso, código administrativo y cierre de sesión |
+| `GET` | `/api/auth/sesion` | Usuario de la sesión actual |
+| `POST` | `/api/auth/recuperar` · `/contrasena` | Recuperación y establecimiento de contraseña |
+| `GET` | `/api/admin/solicitudes` · `/api/admin/auditoria` | Panel administrativo (gestores y auditor) |
+| `POST` | `/api/admin/solicitudes/:id/decision` | Aprobar, rechazar o pedir información |
+| `POST` | `/api/admin/cuentas/:id/estado` | Suspender, reactivar o desactivar |
+
+Todas las rutas, salvo `/api/health`, la verificación de certificados y las de ingreso, exigen sesión y comprueban el rol en el servidor.
 
 ## Qué es real y qué es demostración
 
@@ -132,7 +194,11 @@ docker run -d -p 3000:3000 --env-file .env.local --name cpiensa-academy cpiensa-
 | Knowledge Hub | Corpus de demostración de 4 fragmentos con búsqueda por palabras clave |
 | Automation Studio | Ejecución simulada (registra los pasos, no envía mensajes reales) |
 | Certificados | Registro de demostración en memoria con dos códigos: `CPI-2026-9481` y `CPI-2026-3021`. Cualquier otro código se muestra como **no verificado** |
-| Usuarios, cursos, analítica y marketplace | Datos de ejemplo en `src/data/` |
+| **Ingreso, solicitudes, aprobación, contraseñas, sesiones, permisos y auditoría** | **Reales** (servidor). Se guardan en archivos JSON en `datos/`: adecuado para un piloto en un solo servidor; para mayor escala, migrar a PostgreSQL |
+| Envío de correos | Real con SMTP configurado; sin SMTP se guardan en `datos/correos/` |
+| Progreso del Campus | Se guarda por persona **en el navegador** (no en el servidor) |
+| Pestaña Usuarios de «Administración & RBAC», cursos, analítica y marketplace | Datos de ejemplo en `src/data/` (las cuentas reales se gestionan en «Solicitudes de acceso») |
+| Políticas de privacidad y condiciones de uso | Textos base para revisión jurídica (`public/`) |
 
 Para producción, el registro de certificados, el corpus RAG y los flujos deben conectarse a una base de datos y a los servicios reales.
 
@@ -151,10 +217,13 @@ Para producción, el registro de certificados, el corpus RAG y los flujos deben 
 ```
 ├── server.ts                  # API y servidor (Express)
 ├── server/env.ts              # Carga .env.local / .env
+├── server/auth/               # Ingreso, aprobación, correo, sesiones y auditoría
+├── datos/                     # (se crea solo) cuentas, auditoría y correos de prueba — fuera de Git
 ├── scripts/build-server.mjs   # Compila el servidor con esbuild
 ├── src/
 │   ├── App.tsx                # Navegación entre subsistemas
-│   ├── auth/permisos.ts       # Matriz de roles y permisos (RBAC)
+│   ├── auth/permisos.ts       # Matriz de roles y permisos (navegador y servidor)
+│   ├── auth/cliente.ts        # Cliente de la API de acceso
 │   ├── components/            # Un directorio por subsistema
 │   ├── data/                  # Cursos, ejes transversales y datos de ejemplo
 │   ├── assets/images/         # Imágenes
