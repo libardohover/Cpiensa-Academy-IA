@@ -1,0 +1,6 @@
+{
+  "name": "CPIENSA+ ACADEMY IA 2.0",
+  "description": "Plataforma académica multimodelo y multiinstitución con Campus LMS, AI Hub, Prompt Lab, Agent Studio, Automation Studio, Knowledge Hub y Marketplace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
