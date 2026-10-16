@@ -1,7 +1,8 @@
 import React from 'react';
 import { Sparkles, User, Globe, Menu } from 'lucide-react';
 import simboloCpiensa from '../../assets/images/cpiensa-simbolo.png';
-import { UserProfile, TenantOrg } from '../../types';
+import { UserProfile, TenantOrg, UserRole } from '../../types';
+import { MenuUsuario } from './MenuUsuario';
 import { NOMBRE_ROL, puedeAcceder } from '../../auth/permisos';
 
 interface TopBarProps {
@@ -11,6 +12,8 @@ interface TopBarProps {
   onNavigate: (section: string) => void;
   activeSection: string;
   onAbrirMenu: () => void;
+  onCambiarRol: (rol: UserRole) => void;
+  onCerrarSesion: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -20,6 +23,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onNavigate,
   activeSection,
   onAbrirMenu,
+  onCambiarRol,
+  onCerrarSesion,
 }) => {
   return (
     <header className="flex items-center justify-between gap-3 sm:gap-6 px-4 sm:px-6 py-3.5 bg-white border-b border-slate-200 shrink-0 sticky top-0 z-30">
@@ -43,7 +48,8 @@ export const TopBar: React.FC<TopBarProps> = ({
         >
           <img src={simboloCpiensa} alt="" className="h-7 w-auto" />
           <span>
-            CPIENSA<span className="text-blue-500">+</span> ACADEMY IA
+            CPIENSA<span className="text-blue-500">+</span>
+            <span className="hidden sm:inline"> ACADEMY IA</span>
           </span>
         </a>
         <span className="hidden min-[1800px]:inline-block text-xs text-slate-400" aria-hidden="true">
@@ -55,7 +61,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       </div>
 
       {/* Zone 2: 4–5 clean single-line text navigation links */}
-      <nav className="hidden min-[1500px]:flex items-center gap-5 text-sm font-medium text-slate-600">
+      <nav className="hidden min-[1560px]:flex items-center gap-5 text-sm font-medium text-slate-600">
         <button
           onClick={() => onNavigate('inicio')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
@@ -119,11 +125,15 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span className="hidden sm:inline">Tutor Socrático</span>
         </button>
 
-        <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 text-xs text-slate-600">
-          <span className="hidden min-[1700px]:inline font-medium text-slate-800 truncate max-w-[140px]">{user.name}</span>
-          <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 font-semibold whitespace-nowrap">
-            {NOMBRE_ROL[user.role]}
-          </span>
+        <div className="pl-2 sm:pl-3 border-l border-slate-200">
+          <MenuUsuario
+            user={user}
+            organizacion={currentOrg}
+            onIrAInicio={() => onNavigate('inicio')}
+            onAbrirTutor={onOpenTutor}
+            onCambiarRol={onCambiarRol}
+            onCerrarSesion={onCerrarSesion}
+          />
         </div>
       </div>
     </header>

@@ -5,6 +5,7 @@ import { AccesoRestringido } from './components/navigation/AccesoRestringido';
 import { NOMBRE_ROL, puedeAcceder } from './auth/permisos';
 import { CampusView } from './components/campus/CampusView';
 import { InicioView } from './components/inicio/InicioView';
+import { PantallaIngreso } from './components/navigation/PantallaIngreso';
 import { AIHubView } from './components/aihub/AIHubView';
 import { PromptLabView } from './components/promptlab/PromptLabView';
 import { AgentStudioView } from './components/agentstudio/AgentStudioView';
@@ -149,11 +150,48 @@ export default function App() {
     setNoCodeTools((prev) => [tool, ...prev]);
   };
 
+  // Sesión de la demostración (se recuerda en este navegador)
+  const [sesionActiva, setSesionActiva] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cpiensa_sesion') !== 'cerrada';
+    } catch {
+      return true;
+    }
+  });
+  const [salioRecien, setSalioRecien] = useState(false);
+  const guardarSesion = (valor: 'activa' | 'cerrada') => {
+    try {
+      localStorage.setItem('cpiensa_sesion', valor);
+    } catch {
+      /* sin almacenamiento: la sesión vive solo en memoria */
+    }
+  };
+  const handleCerrarSesion = () => {
+    setTutorOpen(false);
+    setCertificateOpen(false);
+    setMenuAbierto(false);
+    setSalioRecien(true);
+    setSesionActiva(false);
+    guardarSesion('cerrada');
+  };
+  const handleIngresar = (rol: UserRole) => {
+    setCurrentRole(rol);
+    setUser((prev) => ({ ...prev, role: rol }));
+    setActiveSection('inicio');
+    setSalioRecien(false);
+    setSesionActiva(true);
+    guardarSesion('activa');
+  };
+
   const [menuAbierto, setMenuAbierto] = useState(false);
   const irASeccion = (seccion: string) => {
     setActiveSection(seccion);
     setMenuAbierto(false);
   };
+
+  if (!sesionActiva) {
+    return <PantallaIngreso user={user} sesionCerrada={salioRecien} onIngresar={handleIngresar} />;
+  }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-slate-50 antialiased font-sans select-none">
@@ -183,6 +221,8 @@ export default function App() {
           onNavigate={irASeccion}
           activeSection={activeSection}
           onAbrirMenu={() => setMenuAbierto(true)}
+          onCambiarRol={handleRoleChange}
+          onCerrarSesion={handleCerrarSesion}
         />
 
         {/* View Router */}

@@ -34,6 +34,10 @@ Los 10 módulos tienen dos ejes transversales, visibles en cada lección (tarjet
 
 El Tutor Socrático, el evaluador de ejercicios, el Knowledge Hub y el certificado también incorporan ambos ejes. Los textos se editan en `src/data/ejesTransversales.ts`.
 
+## Sesión
+
+El menú del usuario (iniciales y rol, arriba a la derecha) muestra los datos de la cuenta, permite ir al Inicio, abrir el Tutor, cambiar de rol y **Cerrar sesión**. Al cerrar sesión aparece la pantalla de ingreso, donde se elige el rol para volver a entrar. En esta demostración el ingreso no pide contraseña; en producción debe conectarse a la autenticación de la institución.
+
 ## Roles y permisos (RBAC)
 
 El selector **Rol Activo** del menú lateral cambia lo que puede usar cada persona:
