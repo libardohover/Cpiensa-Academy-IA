@@ -6,6 +6,7 @@ Plataforma académica multimodelo y multiinstitución para formación en intelig
 
 | Código | Subsistema | Qué hace |
 |---|---|---|
+| — | **Inicio** | Saludo, meta semanal, indicadores, módulos para continuar, actividades, valor de la semana y accesos según el rol |
 | A | **Campus LMS** | Diplomado de 10 módulos y 50 lecciones, progreso y certificado |
 | B | **AI Hub Gateway** | Catálogo multimodelo, parámetros de inferencia, tokens y costos |
 | C | **Prompt Lab** | Versionado de prompts, pruebas A/B y rúbricas |
@@ -20,13 +21,26 @@ Plataforma académica multimodelo y multiinstitución para formación en intelig
 
 Incluye además el **Tutor Socrático** (panel lateral) y la **verificación de certificados**.
 
+## Identidad corporativa
+
+La interfaz usa los colores de la **Corporación CPIENSA+**: naranja `#F38734` y gris carbón `#373435`, con fondos blancos. Están definidos una sola vez en `src/index.css` (bloque `@theme`), así que todos los componentes los toman automáticamente. El logo está en `src/assets/images/` (`cpiensa-logo.png` y `cpiensa-simbolo.png`).
+
+## Ejes transversales del diplomado
+
+Los 10 módulos tienen dos ejes transversales, visibles en cada lección (tarjeta **Ejes transversales del Módulo**) y en el marco completo (botón **Ejes transversales** del Campus):
+
+- **Valores y principios cristianos:** dignidad humana, verdad e integridad, amor y servicio, justicia y equidad, mayordomía responsable, sabiduría y discernimiento, comunidad y trabajo con excelencia, cada uno con su referencia bíblica, su aplicación a la IA y un compromiso práctico por módulo.
+- **Enfoque etnoeducativo:** por módulo, cómo se aplica la etnoeducación, el principio del Decreto 804 de 1995 que se trabaja y una actividad etnoeducativa. Incluye el marco normativo (Constitución, Ley 21 de 1991, Ley 70 de 1993, Ley 115 de 1994, Decreto 804 de 1995 y Decreto 1122 de 1998).
+
+El Tutor Socrático, el evaluador de ejercicios, el Knowledge Hub y el certificado también incorporan ambos ejes. Los textos se editan en `src/data/ejesTransversales.ts`.
+
 ## Roles y permisos (RBAC)
 
 El selector **Rol Activo** del menú lateral cambia lo que puede usar cada persona:
 
 | Subsistema | Estudiante | Profesor / Tutor | Administrador Institucional | SuperAdmin |
 |---|:-:|:-:|:-:|:-:|
-| Campus, AI Hub, Prompt Lab, Agent Studio, Knowledge Hub, No-Code Builder, Marketplace | ✓ | ✓ | ✓ | ✓ |
+| Inicio, Campus, AI Hub, Prompt Lab, Agent Studio, Knowledge Hub, No-Code Builder, Marketplace | ✓ | ✓ | ✓ | ✓ |
 | Automation Studio, Analytics Center | | ✓ | ✓ | ✓ |
 | Conectores Enterprise, Administración | | | ✓ | ✓ |
 | Cambiar de institución y gestionar instituciones (multi-tenant), asignar rol SuperAdmin | | | | ✓ |
@@ -138,7 +152,7 @@ Para producción, el registro de certificados, el corpus RAG y los flujos deben 
 │   ├── App.tsx                # Navegación entre subsistemas
 │   ├── auth/permisos.ts       # Matriz de roles y permisos (RBAC)
 │   ├── components/            # Un directorio por subsistema
-│   ├── data/                  # Cursos y datos de ejemplo
+│   ├── data/                  # Cursos, ejes transversales y datos de ejemplo
 │   ├── assets/images/         # Imágenes
 │   └── types/
 ├── public/                    # favicon

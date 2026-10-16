@@ -11,6 +11,7 @@ import {
   Search,
   ArrowLeft,
 } from 'lucide-react';
+import logoCpiensa from '../../assets/images/cpiensa-logo.png';
 import { Certificate } from '../../types';
 
 interface CertificateModalProps {
@@ -39,6 +40,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       'Recuperación Vectorial RAG',
       'Orquestación n8n & Webhooks',
       'Gobernanza y Ley 1581',
+      'Ética cristiana aplicada a la IA',
+      'IA con pertinencia etnoeducativa',
     ],
     verificationUrl: `https://cpiensa.edu.co/verify/${certificateCode}`,
     signatureHash: 'sha256_e9c30f4812a03b519cf781_cp2026_verified',
@@ -148,6 +151,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           >
             {/* Institution Badge */}
             <div className="flex flex-col items-center justify-center mb-6">
+              <img src={logoCpiensa} alt="Corporación CPIENSA+" className="h-20 sm:h-24 w-auto mb-3" />
               <span className="text-[11px] font-bold tracking-widest text-blue-700 uppercase font-mono">
                 Corporación Educativa & Tecnológica
               </span>
@@ -178,6 +182,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               </div>
               <p className="text-xs text-slate-500 mt-2 font-mono">
                 Intensidad: {certData.hours} Horas Académicas · Calificación Final: {certData.grade}
+              </p>
+              <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
+                Formación con ejes transversales en <strong>valores y principios cristianos</strong> y{' '}
+                <strong>enfoque etnoeducativo</strong> (Ley 70 de 1993 · Decreto 804 de 1995).
               </p>
             </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Sparkles, User, Globe, Menu } from 'lucide-react';
+import simboloCpiensa from '../../assets/images/cpiensa-simbolo.png';
 import { UserProfile, TenantOrg } from '../../types';
 import { NOMBRE_ROL, puedeAcceder } from '../../auth/permisos';
 
@@ -33,29 +34,40 @@ export const TopBar: React.FC<TopBarProps> = ({
           <Menu className="w-5 h-5" />
         </button>
         <a
-          href="#campus"
+          href="#inicio"
           onClick={(e) => {
             e.preventDefault();
-            onNavigate('campus');
+            onNavigate('inicio');
           }}
-          className="text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 hover:text-slate-700 transition-colors"
+          className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 hover:text-slate-700 transition-colors"
         >
-          CPIENSA+ ACADEMY IA
+          <img src={simboloCpiensa} alt="" className="h-7 w-auto" />
+          <span>
+            CPIENSA<span className="text-blue-500">+</span> ACADEMY IA
+          </span>
         </a>
-        <span className="hidden 2xl:inline-block text-xs text-slate-400" aria-hidden="true">
+        <span className="hidden min-[1800px]:inline-block text-xs text-slate-400" aria-hidden="true">
           ·
         </span>
-        <span className="hidden 2xl:inline-block text-xs font-medium text-slate-600 truncate max-w-[200px]">
+        <span className="hidden min-[1800px]:inline-block text-xs font-medium text-slate-600 truncate max-w-[200px]">
           {currentOrg.name}
         </span>
       </div>
 
       {/* Zone 2: 4–5 clean single-line text navigation links */}
-      <nav className="hidden min-[1400px]:flex items-center gap-5 text-sm font-medium text-slate-600">
+      <nav className="hidden min-[1500px]:flex items-center gap-5 text-sm font-medium text-slate-600">
+        <button
+          onClick={() => onNavigate('inicio')}
+          className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
+            activeSection === 'inicio' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
+          }`}
+        >
+          Inicio
+        </button>
         <button
           onClick={() => onNavigate('campus')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-            activeSection === 'campus' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+            activeSection === 'campus' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
           }`}
         >
           Campus LMS
@@ -63,7 +75,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={() => onNavigate('aihub')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-            activeSection === 'aihub' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+            activeSection === 'aihub' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
           }`}
         >
           AI Hub
@@ -71,7 +83,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={() => onNavigate('promptlab')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-            activeSection === 'promptlab' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+            activeSection === 'promptlab' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
           }`}
         >
           Prompt Lab
@@ -80,7 +92,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           <button
             onClick={() => onNavigate('automation')}
             className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-              activeSection === 'automation' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+              activeSection === 'automation' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
             }`}
           >
             Automatizaciones
@@ -89,7 +101,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={() => onNavigate('marketplace')}
           className={`hover:text-slate-900 transition-colors whitespace-nowrap shrink-0 ${
-            activeSection === 'marketplace' ? 'text-slate-900 font-semibold border-b-2 border-slate-900 pb-0.5' : ''
+            activeSection === 'marketplace' ? 'text-slate-900 font-semibold border-b-2 border-blue-500 pb-0.5' : ''
           }`}
         >
           Marketplace
@@ -108,7 +120,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         </button>
 
         <div className="hidden md:flex items-center gap-2 pl-3 border-l border-slate-200 text-xs text-slate-600">
-          <span className="hidden 2xl:inline font-medium text-slate-800 truncate max-w-[140px]">{user.name}</span>
+          <span className="hidden min-[1700px]:inline font-medium text-slate-800 truncate max-w-[140px]">{user.name}</span>
           <span className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 font-semibold whitespace-nowrap">
             {NOMBRE_ROL[user.role]}
           </span>

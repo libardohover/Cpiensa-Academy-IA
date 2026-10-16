@@ -4,6 +4,7 @@ import { Sidebar } from './components/navigation/Sidebar';
 import { AccesoRestringido } from './components/navigation/AccesoRestringido';
 import { NOMBRE_ROL, puedeAcceder } from './auth/permisos';
 import { CampusView } from './components/campus/CampusView';
+import { InicioView } from './components/inicio/InicioView';
 import { AIHubView } from './components/aihub/AIHubView';
 import { PromptLabView } from './components/promptlab/PromptLabView';
 import { AgentStudioView } from './components/agentstudio/AgentStudioView';
@@ -33,6 +34,7 @@ import {
 import { TenantOrg, UserRole, UserProfile, PromptVersion, AgentDefinition, Workflow, KnowledgeDocument, NoCodeTool } from './types';
 
 const NOMBRES_SECCION: Record<string, string> = {
+  inicio: 'Inicio',
   campus: 'Campus LMS',
   aihub: 'AI Hub Gateway',
   promptlab: 'Prompt Lab',
@@ -47,7 +49,8 @@ const NOMBRES_SECCION: Record<string, string> = {
 };
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState<string>('campus');
+  const [activeSection, setActiveSection] = useState<string>('inicio');
+  const [leccionInicial, setLeccionInicial] = useState<string | undefined>(undefined);
 
   // Multi-Tenant & User State
   const [organizations, setOrganizations] = useState<TenantOrg[]>(INITIAL_ORGS);
@@ -192,8 +195,30 @@ export default function App() {
               onIrAlCampus={() => irASeccion('campus')}
             />
           )}
+          {activeSection === 'inicio' && puedeAcceder(currentRole, 'inicio') && (
+            <InicioView
+              user={user}
+              rol={currentRole}
+              organizacion={currentOrg}
+              modulos={COURSE_MODULES}
+              leccionesCompletadas={completedLessonIds}
+              onIrASeccion={irASeccion}
+              onAbrirLeccion={(id) => {
+                setLeccionInicial(id);
+                irASeccion('campus');
+              }}
+              onAbrirTutor={() => {
+                setTutorContext('Consulta libre al tutor pedagógico de CPIENSA+');
+                setTutorOpen(true);
+              }}
+              onAbrirCertificado={() => setCertificateOpen(true)}
+            />
+          )}
+
           {activeSection === 'campus' && puedeAcceder(currentRole, 'campus') && (
             <CampusView
+              key={leccionInicial ?? 'campus'}
+              leccionInicial={leccionInicial}
               modules={COURSE_MODULES}
               completedLessonIds={completedLessonIds}
               onToggleLessonCompletion={handleToggleLessonCompletion}

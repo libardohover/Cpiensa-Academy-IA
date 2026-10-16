@@ -255,6 +255,24 @@ app.post('/api/knowledge/query', (req, res) => {
       score: 0.82,
       citation: 'Documentación de Automatización CPIENSA+, Módulo 6',
     },
+    {
+      id: 'chunk-105',
+      docTitle: 'Ejes Transversales del Diplomado CPIENSA+',
+      section: 'Valores y principios cristianos',
+      content:
+        'La formación en IA se orienta por la dignidad humana (Génesis 1:27), la verdad e integridad (Juan 8:32), el servicio al prójimo (Mateo 22:39), la justicia (Miqueas 6:8), la mayordomía responsable (1 Pedro 4:10), la sabiduría y el discernimiento (Santiago 1:5), la comunidad (1 Corintios 12) y el trabajo con excelencia (Colosenses 3:23). La decisión final sobre lo que hace un sistema de IA es siempre humana.',
+      score: 0.8,
+      citation: 'Marco de Ejes Transversales CPIENSA+ (2026)',
+    },
+    {
+      id: 'chunk-106',
+      docTitle: 'Ejes Transversales del Diplomado CPIENSA+',
+      section: 'Enfoque etnoeducativo',
+      content:
+        'Cada módulo aplica los principios de la etnoeducación del Decreto 804 de 1995 (integralidad, diversidad lingüística, autonomía, participación comunitaria, interculturalidad, flexibilidad, progresividad y solidaridad), la Ley 70 de 1993 y la Cátedra de Estudios Afrocolombianos (Decreto 1122 de 1998). Los saberes y datos de los pueblos étnicos son colectivos y requieren consentimiento libre, previo e informado de sus autoridades.',
+      score: 0.8,
+      citation: 'Marco de Ejes Transversales CPIENSA+ (2026)',
+    },
   ];
 
   const lower = query.toLowerCase();
@@ -271,6 +289,12 @@ app.post('/api/knowledge/query', (req, res) => {
     }
     if (lower.includes('webhook') || lower.includes('flujo') || lower.includes('automatiz')) {
       if (item.id === 'chunk-104') boost += 0.05;
+    }
+    if (/(valor|cristian|ética|etica|biblia|dignidad|principio)/.test(lower)) {
+      if (item.id === 'chunk-105') boost += 0.18;
+    }
+    if (/(etno|étnic|etnic|afro|indígena|indigena|raizal|palenque|intercultural|comunidad)/.test(lower)) {
+      if (item.id === 'chunk-106') boost += 0.18;
     }
     return { ...item, score: Math.min(0.99, item.score + boost) };
   })
@@ -348,7 +372,7 @@ app.get('/api/certificates/:code', (req, res) => {
       institution: 'Corporación CPIENSA+',
       hours: 120,
       grade: '98/100 (Excelente con Honores)',
-      skills: ['Ingeniería de Prompts', 'Agentes Autónomos', 'RAG con pgvector', 'n8n & Webhooks'],
+      skills: ['Ingeniería de Prompts', 'Agentes Autónomos', 'RAG con pgvector', 'n8n & Webhooks', 'Ética cristiana aplicada a la IA', 'IA con pertinencia etnoeducativa'],
       status: 'Valido y Verificado',
     },
     'CPI-2026-3021': {
@@ -358,7 +382,7 @@ app.get('/api/certificates/:code', (req, res) => {
       institution: 'CPIENSA+ ACADEMY IA',
       hours: 45,
       grade: '94/100',
-      skills: ['Few-shot Prompting', 'Evaluación de Modelos', 'Mitigación de Sesgos'],
+      skills: ['Few-shot Prompting', 'Evaluación de Modelos', 'Mitigación de Sesgos', 'Ética cristiana aplicada a la IA'],
       status: 'Valido y Verificado',
     },
   };

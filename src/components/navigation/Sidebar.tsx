@@ -14,8 +14,10 @@ import {
   Building2,
   UserCheck,
   Lock,
+  Home,
 } from 'lucide-react';
 import { TenantOrg, UserRole } from '../../types';
+import simboloCpiensa from '../../assets/images/cpiensa-simbolo.png';
 import { DESCRIPCION_ROL, NOMBRE_ROL, SECCIONES_POR_ROL, puedeAcceder, puedeCambiarInstitucion, rolMinimo } from '../../auth/permisos';
 
 interface SidebarProps {
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onChangeRole,
 }) => {
   const menuItems = [
+    { id: 'inicio', label: 'Inicio', icon: Home, code: '' },
     { id: 'campus', label: 'Campus LMS', icon: GraduationCap, code: 'A' },
     { id: 'aihub', label: 'AI Hub Gateway', icon: Cpu, code: 'B' },
     { id: 'promptlab', label: 'Prompt Lab', icon: Terminal, code: 'C' },
@@ -70,6 +73,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }`}
       aria-label="Menú de subsistemas"
     >
+      {/* Identidad corporativa */}
+      <div className="px-4 pt-4 pb-3 border-b border-slate-800 flex items-center gap-3">
+        <div className="bg-white rounded-lg p-1.5 shrink-0 shadow-sm">
+          <img src={simboloCpiensa} alt="" className="h-8 w-auto" />
+        </div>
+        <div className="leading-tight">
+          <p className="text-sm font-bold text-white tracking-tight">
+            CPIENSA<span className="text-blue-500">+</span>
+          </p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">Corporación</p>
+        </div>
+      </div>
+
       {/* Organization Switcher (Multi-Tenant) */}
       <div className="p-4 border-b border-slate-800">
         <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 block mb-1.5 flex items-center gap-1.5">
@@ -127,7 +143,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span className="truncate">{item.label}</span>
               </div>
-              {permitido ? (
+              {permitido && !item.code ? null : permitido ? (
                 <span
                   className={`text-[10px] font-mono shrink-0 px-1.5 py-0.5 rounded ${
                     isActive ? 'bg-blue-700 text-white' : 'bg-slate-800 text-slate-400'

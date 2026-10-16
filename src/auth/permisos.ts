@@ -5,6 +5,7 @@
 import type { UserRole } from '../types';
 
 export type Seccion =
+  | 'inicio'
   | 'campus'
   | 'aihub'
   | 'promptlab'
@@ -17,7 +18,7 @@ export type Seccion =
   | 'integrations'
   | 'admin';
 
-const BASICAS: Seccion[] = ['campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'marketplace'];
+const BASICAS: Seccion[] = ['inicio', 'campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'marketplace'];
 const DOCENTE: Seccion[] = [...BASICAS, 'automation', 'analytics'];
 const ADMINISTRACION: Seccion[] = [...DOCENTE, 'integrations', 'admin'];
 

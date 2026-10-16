@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import { CourseModule, Lesson } from '../../types';
 import heroBanner from '../../assets/images/academy_hero_banner_1792081705824.jpg';
+import { EjesModulo } from './EjesModulo';
+import { MarcoEjesModal } from './MarcoEjesModal';
+import { contextoEjes } from '../../data/ejesTransversales';
 
 interface CampusViewProps {
   modules: CourseModule[];
@@ -26,6 +29,8 @@ interface CampusViewProps {
   onOpenCertificate: () => void;
   onSendToPlayground: (prompt: string) => void;
   onOpenTutorWithContext: (context: string) => void;
+  /** Lección que se abre al entrar (p. ej., desde Inicio). */
+  leccionInicial?: string;
 }
 
 export const CampusView: React.FC<CampusViewProps> = ({
@@ -35,15 +40,20 @@ export const CampusView: React.FC<CampusViewProps> = ({
   onOpenCertificate,
   onSendToPlayground,
   onOpenTutorWithContext,
+  leccionInicial,
 }) => {
-  const [selectedModuleId, setSelectedModuleId] = useState<number>(1);
-  const [selectedLessonId, setSelectedLessonId] = useState<string>('les-1-1');
+  const leccionDeInicio = leccionInicial
+    ? modules.flatMap((m) => m.lessons).find((l) => l.id === leccionInicial)
+    : undefined;
+  const [selectedModuleId, setSelectedModuleId] = useState<number>(leccionDeInicio?.moduleId ?? 1);
+  const [selectedLessonId, setSelectedLessonId] = useState<string>(leccionDeInicio?.id ?? 'les-1-1');
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null);
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [exerciseText, setExerciseText] = useState<string>('');
   const [evaluatingExercise, setEvaluatingExercise] = useState<boolean>(false);
   const [exerciseFeedback, setExerciseFeedback] = useState<string | null>(null);
+  const [marcoAbierto, setMarcoAbierto] = useState<boolean>(false);
 
   const currentModule = modules.find((m) => m.id === selectedModuleId) || modules[0];
   const currentLesson =
@@ -80,10 +90,11 @@ export const CampusView: React.FC<CampusViewProps> = ({
           prompt: `Actúa como Evaluador Pedagógico Oficial de CPIENSA+ ACADEMY IA.
 Lección: "${currentLesson.title}"
 Rúbrica: ${JSON.stringify(currentLesson.rubric)}
+${contextoEjes(currentLesson.moduleId)}
 Respuesta del estudiante:
 """${exerciseText}"""
 
-Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destaca dos aciertos pedagógicos y formula una sugerencia concreta de mejora técnica o de seguridad.`,
+Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destaca dos aciertos pedagógicos y formula una sugerencia concreta de mejora técnica o de seguridad. Si aplica, añade una observación breve sobre los ejes transversales (valores cristianos y enfoque etnoeducativo).`,
           systemInstruction:
             'Eres un docente universitario riguroso, formativo y preciso. Evalúa conforme a la rúbrica oficial.',
           model: 'gemini-3.8-flash',
@@ -130,6 +141,15 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
             <p className="text-xs text-slate-300 mt-1 max-w-2xl">
               Programa de certificación académica rigurosa con soberanía tecnológica, multi-modelo, agentes autónomos y gobernanza ética.
             </p>
+            <button
+              onClick={() => setMarcoAbierto(true)}
+              className="mt-2.5 inline-flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-semibold text-white bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-3 py-1 transition-colors"
+            >
+              <span>Ejes transversales:</span>
+              <span className="text-blue-300">Valores y principios cristianos</span>
+              <span aria-hidden="true">·</span>
+              <span className="text-emerald-300">Enfoque etnoeducativo</span>
+            </button>
           </div>
 
           <div className="flex items-center gap-4 bg-slate-800/80 p-3 rounded-lg border border-slate-700/60 shrink-0">
@@ -285,7 +305,7 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
                 <button
                   onClick={() =>
                     onOpenTutorWithContext(
-                      `Estoy estudiando la lección "${currentLesson.title}" del Módulo ${currentLesson.moduleId}. Resumen: ${currentLesson.summary}`
+                      `Estoy estudiando la lección "${currentLesson.title}" del Módulo ${currentLesson.moduleId}. Resumen: ${currentLesson.summary}. ${contextoEjes(currentLesson.moduleId)}`
                     )
                   }
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
@@ -329,6 +349,9 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
               </div>
             </div>
           </div>
+
+          {/* Ejes transversales: valores cristianos y etnoeducación */}
+          <EjesModulo moduloId={currentLesson.moduleId} onVerMarco={() => setMarcoAbierto(true)} />
 
           {/* Theoretical Content */}
           <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-xs space-y-4">
@@ -547,6 +570,7 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
           </div>
         </div>
       </div>
+      {marcoAbierto && <MarcoEjesModal onClose={() => setMarcoAbierto(false)} />}
     </div>
   );
 };
