@@ -1,3 +1,4 @@
+import { AvisoIA } from '../legal/AvisoIA';
 import React, { useState } from 'react';
 import {
   Cpu,
@@ -241,6 +242,7 @@ export const AIHubView: React.FC<AIHubViewProps> = ({
               className="w-full flex-1 bg-slate-50 border border-slate-300 rounded-lg p-3 text-xs font-mono text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white resize-y"
               placeholder="Escribe tu prompt técnico..."
             />
+            <AvisoIA className="mt-1.5" />
 
             <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100">
               <button

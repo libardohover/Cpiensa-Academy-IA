@@ -9,6 +9,8 @@ export type UsuarioSesion = {
   institucionId: string;
   institucionNombre: string;
   esDemo: boolean;
+  /** Documentos obligatorios con versión nueva sin aceptar. */
+  pendientesLegales: string[];
 };
 
 export type ConfigAcceso = {
@@ -59,13 +61,14 @@ export const acceso = {
     api<{ usuario?: UsuarioSesion; requiereCodigo?: boolean; mensaje?: string }>('/auth/ingresar', { correo, contrasena }),
   codigo: (codigo: string) => api<{ usuario: UsuarioSesion }>('/auth/codigo', { codigo }),
   salir: () => api<{ ok: true }>('/auth/salir', {}),
-  solicitar: (d: { nombre: string; correo: string; institucionId: string; rol: string; motivo: string; aceptaDatos: boolean }) =>
-    api<{ mensaje: string }>('/auth/solicitudes', d),
+  solicitar: (d: Record<string, unknown>) => api<{ mensaje: string }>('/auth/solicitudes', d),
   verificar: (token: string) => api<{ mensaje: string }>('/auth/verificar', { token }),
   recuperar: (correo: string) => api<{ mensaje: string }>('/auth/recuperar', { correo }),
-  enlace: (tipo: 'contrasena' | 'recuperar', token: string) => api<{ correo: string; nombre: string }>('/auth/enlace', { tipo, token }),
-  contrasena: (tipo: 'contrasena' | 'recuperar', token: string, contrasena: string) =>
-    api<{ mensaje: string }>('/auth/contrasena', { tipo, token, contrasena }),
+  enlace: (tipo: 'contrasena' | 'recuperar', token: string) =>
+    api<{ correo: string; nombre: string; pendientesLegales: string[]; declaroEdad: boolean }>('/auth/enlace', { tipo, token }),
+  contrasena: (tipo: 'contrasena' | 'recuperar', token: string, contrasena: string, extra: Record<string, unknown> = {}) =>
+    api<{ mensaje: string }>('/auth/contrasena', { tipo, token, contrasena, ...extra }),
+  aceptarDocumentos: (d: Record<string, unknown>) => api<{ ok: true; pendientesLegales: string[] }>('/legal/aceptar', d),
   demo: (rol: UserRole) => api<{ usuario: UsuarioSesion }>('/auth/demo', { rol }),
   demoRol: (rol: UserRole) => api<{ usuario: UsuarioSesion }>('/auth/demo/rol', { rol }),
 };

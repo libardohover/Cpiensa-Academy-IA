@@ -41,6 +41,10 @@ export type Cuenta = {
   creada: string;
   actualizada: string;
   ultimoIngreso?: string;
+  /** Última versión aceptada de cada documento legal (la prueba completa está en consentimientos.jsonl). */
+  aceptaciones?: Partial<Record<'terminos' | 'privacidad', { version: string; fecha: string }>>;
+  /** Declaró tener 18 años o más. */
+  mayorDeEdad?: boolean;
 };
 
 export type TipoToken = 'verificacion' | 'contrasena' | 'recuperacion' | 'codigo_admin';
@@ -262,4 +266,57 @@ export function leerAuditoria(limite = 300): EventoAuditoria[] {
     .slice(-limite)
     .map((l) => JSON.parse(l) as EventoAuditoria)
     .reverse();
+}
+
+// ---------- Conservación de datos (Decreto 1377 de 2013, art. 11) ----------
+
+const DIA = 24 * 3_600_000;
+export const RETENCION = {
+  sinVerificarDias: 7,
+  rechazadasDias: 180,
+  auditoriaDias: 730,
+};
+
+/** Elimina lo que ya cumplió su finalidad. Devuelve cuántos registros se eliminaron. */
+export function purgarDatosVencidos(): { cuentas: number; auditoria: number } {
+  const d = cargar();
+  const ahora = Date.now();
+  const eliminar = d.cuentas.filter((c) => {
+    if (c.estado === 'pendiente_verificacion') return ahora - Date.parse(c.creada) > RETENCION.sinVerificarDias * DIA;
+    const ultima = c.decisiones[c.decisiones.length - 1];
+    if (c.estado === 'desactivada' && !c.aprobada && ultima?.tipo === 'rechazada') {
+      return ahora - Date.parse(ultima.fecha) > RETENCION.rechazadasDias * DIA;
+    }
+    return false;
+  });
+  if (eliminar.length) {
+    const ids = new Set(eliminar.map((c) => c.id));
+    d.cuentas = d.cuentas.filter((c) => !ids.has(c.id));
+    d.tokens = d.tokens.filter((t) => !ids.has(t.cuentaId));
+    d.sesiones = d.sesiones.filter((s) => !s.cuentaId || !ids.has(s.cuentaId));
+    guardar();
+    for (const c of eliminar) {
+      auditar({
+        actor: 'sistema',
+        accion: 'datos_eliminados_por_conservacion',
+        objetivo: `${c.correo.slice(0, 2)}***@${c.correo.split('@')[1] ?? ''}`,
+        institucionId: c.institucionId,
+        detalle: c.estado === 'pendiente_verificacion' ? `Correo no verificado en ${RETENCION.sinVerificarDias} días` : `Solicitud rechazada hace más de ${RETENCION.rechazadasDias} días`,
+      });
+    }
+  }
+  // Auditoría: se conservan los últimos RETENCION.auditoriaDias días
+  let auditoria = 0;
+  if (fs.existsSync(AUDITORIA)) {
+    const limite = new Date(ahora - RETENCION.auditoriaDias * DIA).toISOString();
+    const lineas = fs.readFileSync(AUDITORIA, 'utf8').split('\n').filter(Boolean);
+    const vigentes = lineas.filter((l) => (JSON.parse(l) as EventoAuditoria).fecha >= limite);
+    auditoria = lineas.length - vigentes.length;
+    if (auditoria) {
+      const tmp = `${AUDITORIA}.${process.pid}.tmp`;
+      fs.writeFileSync(tmp, vigentes.map((l) => l + '\n').join(''), { mode: 0o600 });
+      fs.renameSync(tmp, AUDITORIA);
+    }
+  }
+  return { cuentas: eliminar.length, auditoria };
 }

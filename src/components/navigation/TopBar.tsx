@@ -132,6 +132,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             user={user}
             organizacion={currentOrg}
             onIrAInicio={() => onNavigate('inicio')}
+            onMisDatos={() => onNavigate('misdatos')}
             onAbrirTutor={onOpenTutor}
             onCambiarRol={onCambiarRol}
             onCerrarSesion={onCerrarSesion}

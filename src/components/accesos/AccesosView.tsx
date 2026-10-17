@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, XCircle, HelpCircle, RefreshCw, Loader2, ShieldAlert, UserCheck, Clock, Ban, PlayCircle, Send, ScrollText, Users, Inbox } from 'lucide-react';
+import { CheckCircle2, XCircle, HelpCircle, RefreshCw, Loader2, ShieldAlert, UserCheck, Clock, Ban, PlayCircle, Send, ScrollText, Users, Inbox, FileSignature, Scale, Download } from 'lucide-react';
+import { DOCUMENTOS, TIPOS_SOLICITUD_TITULAR, type IdDocumento, type TipoSolicitudTitular } from '../../legal/documentos';
 import type { UserRole } from '../../types';
 import { NOMBRE_ROL } from '../../auth/permisos';
 import { api, esErrorApi, type UsuarioSesion } from '../../auth/cliente';
@@ -22,6 +23,8 @@ type CuentaVista = {
   creada: string;
   ultimoIngreso?: string;
 };
+type Consentimiento = { id: string; fecha: string; correo: string; documento: string; version: string; huella: string; accion: string; medio: string; casilla: string; ip: string; navegador: string };
+type SolicitudTitular = { id: string; radicado: string; fecha: string; correo: string; nombre: string; tipo: TipoSolicitudTitular; mensaje: string; estado: 'recibida' | 'atendida'; fechaLimite: string; respuesta?: { por: string; fecha: string; texto: string } };
 type Evento = { id: string; fecha: string; actor: string; accion: string; objetivo?: string; detalle?: string; ip?: string };
 
 const ESTADOS: Record<CuentaVista['estado'], { texto: string; clase: string }> = {
@@ -43,7 +46,11 @@ interface Props {
 }
 
 export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitudInicial }) => {
-  const [pestana, setPestana] = useState<'solicitudes' | 'cuentas' | 'auditoria'>('solicitudes');
+  const [pestana, setPestana] = useState<'solicitudes' | 'cuentas' | 'consentimientos' | 'titulares' | 'auditoria'>('solicitudes');
+  const [consentimientos, setConsentimientos] = useState<Consentimiento[]>([]);
+  const [totalConsentimientos, setTotalConsentimientos] = useState(0);
+  const [titulares, setTitulares] = useState<SolicitudTitular[]>([]);
+  const [respuestas, setRespuestas] = useState<Record<string, string>>({});
   const [cuentas, setCuentas] = useState<CuentaVista[]>([]);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [puedeDecidir, setPuedeDecidir] = useState(false);
@@ -71,6 +78,13 @@ export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitud
       setPuedeDecidir(s.puedeDecidir);
       setAsignables(s.rolesAsignables);
       setEventos(a.eventos);
+      const [c, t] = await Promise.all([
+        api<{ registros: Consentimiento[]; total: number }>('/admin/consentimientos'),
+        api<{ solicitudes: SolicitudTitular[] }>('/admin/solicitudes-titular'),
+      ]);
+      setConsentimientos(c.registros);
+      setTotalConsentimientos(c.total);
+      setTitulares(t.solicitudes);
     } catch (e) {
       setError(esErrorApi(e) ? e.error : 'No se pudo cargar la información.');
     } finally {
@@ -150,6 +164,21 @@ export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitud
     }
   };
 
+  const atenderTitular = async (s: SolicitudTitular) => {
+    const texto = (respuestas[s.id] ?? '').trim();
+    if (texto.length < 5) {
+      setAviso({ tipo: 'error', texto: 'Escribe la respuesta que recibirá el titular.' });
+      return;
+    }
+    try {
+      const r = await api<{ solicitud: SolicitudTitular }>(`/admin/solicitudes-titular/${s.id}/atender`, { respuesta: texto });
+      setTitulares((prev) => prev.map((x) => (x.id === s.id ? r.solicitud : x)));
+      setAviso({ tipo: 'exito', texto: `Solicitud ${s.radicado} atendida. Se envió la respuesta a ${s.correo}.` });
+    } catch (e) {
+      setAviso({ tipo: 'error', texto: esErrorApi(e) ? e.error : 'No se pudo registrar la respuesta.' });
+    }
+  };
+
   const instDisponibles = usuario.rol === 'SuperAdmin' ? instituciones : instituciones.filter((i) => i.id === usuario.institucionId);
 
   return (
@@ -196,10 +225,12 @@ export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitud
           </p>
         )}
 
-        <div className="flex gap-1 border-b border-slate-200" role="tablist">
+        <div className="flex gap-1 border-b border-slate-200 overflow-x-auto" role="tablist">
           {[
             { id: 'solicitudes' as const, texto: `Pendientes (${pendientes.length})`, icono: Inbox },
             { id: 'cuentas' as const, texto: `Cuentas (${cuentas.length})`, icono: Users },
+            { id: 'consentimientos' as const, texto: 'Consentimientos', icono: FileSignature },
+            { id: 'titulares' as const, texto: `Derechos de titulares (${titulares.filter((t) => t.estado === 'recibida').length})`, icono: Scale },
             { id: 'auditoria' as const, texto: 'Auditoría', icono: ScrollText },
           ].map((t) => {
             const I = t.icono;
@@ -209,7 +240,7 @@ export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitud
                 role="tab"
                 aria-selected={pestana === t.id}
                 onClick={() => setPestana(t.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px ${
+                className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px whitespace-nowrap ${
                   pestana === t.id ? 'border-blue-500 text-slate-900' : 'border-transparent text-slate-500 hover:text-slate-800'
                 }`}
               >
@@ -475,6 +506,118 @@ export const AccesosView: React.FC<Props> = ({ usuario, instituciones, solicitud
             <p className="px-4 py-2 text-[11px] text-slate-500 border-t border-slate-100">
               {decididas.length} cuenta(s) con decisión registrada.
             </p>
+          </div>
+        )}
+
+
+        {!cargando && pestana === 'consentimientos' && (
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100">
+              <p className="text-xs text-slate-600">
+                {totalConsentimientos} registro(s). Cada aceptación guarda fecha, versión, huella del documento, texto de la casilla, medio, IP y navegador.
+              </p>
+              <a
+                href="/api/admin/consentimientos?formato=csv"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50"
+              >
+                <Download className="w-3.5 h-3.5" /> Exportar CSV
+              </a>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[860px]">
+                <thead className="bg-slate-50 text-slate-500 uppercase tracking-wide">
+                  <tr>
+                    <th className="text-left px-4 py-2">Fecha</th>
+                    <th className="text-left px-4 py-2">Persona</th>
+                    <th className="text-left px-4 py-2">Documento</th>
+                    <th className="text-left px-4 py-2">Medio</th>
+                    <th className="text-left px-4 py-2">IP · huella</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {consentimientos.map((c) => (
+                    <tr key={c.id}>
+                      <td className="px-4 py-2 whitespace-nowrap">{fecha(c.fecha)}</td>
+                      <td className="px-4 py-2">{c.correo}</td>
+                      <td className="px-4 py-2">
+                        <strong>{c.documento === 'declaracion_edad' ? 'Mayoría de edad' : DOCUMENTOS[c.documento as IdDocumento]?.titulo ?? c.documento}</strong>
+                        {c.documento !== 'declaracion_edad' && ` v${c.version}`} · {c.accion}
+                      </td>
+                      <td className="px-4 py-2">{c.medio.replace(/_/g, ' ')}</td>
+                      <td className="px-4 py-2 font-mono text-[10px] text-slate-600">
+                        {c.ip} · {c.huella.slice(0, 12)}…
+                      </td>
+                    </tr>
+                  ))}
+                  {consentimientos.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
+                        Sin registros.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {!cargando && pestana === 'titulares' && (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600">
+              Consultas: 10 días hábiles. Reclamos: 15 días hábiles (Ley 1581 de 2012, arts. 14 y 15). La fecha límite no descuenta festivos: verifícala con el calendario oficial.
+            </p>
+            {titulares.length === 0 && <div className="bg-white border border-slate-200 rounded-xl p-5 text-sm text-slate-600">No hay solicitudes de titulares.</div>}
+            {titulares.map((t) => {
+              const vencida = t.estado === 'recibida' && t.fechaLimite < new Date().toISOString().slice(0, 10);
+              return (
+                <article key={t.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-2">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">
+                        {t.radicado} · {TIPOS_SOLICITUD_TITULAR[t.tipo]}
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        {t.nombre} ({t.correo}) · {fecha(t.fecha)}
+                      </p>
+                    </div>
+                    <span
+                      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${
+                        t.estado === 'atendida'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : vencida
+                            ? 'bg-rose-50 text-rose-800 border-rose-200'
+                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                      }`}
+                    >
+                      {t.estado === 'atendida' ? 'Atendida' : vencida ? `Vencida (${t.fechaLimite})` : `Responder antes del ${t.fechaLimite}`}
+                    </span>
+                  </div>
+                  {t.mensaje && <p className="text-sm text-slate-700">{t.mensaje}</p>}
+                  {t.respuesta ? (
+                    <p className="text-xs text-slate-600 bg-slate-50 rounded-lg p-2">
+                      Respuesta de {t.respuesta.por} ({fecha(t.respuesta.fecha)}): {t.respuesta.texto}
+                    </p>
+                  ) : (
+                    puedeDecidir && (
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <textarea
+                          rows={2}
+                          aria-label={`Respuesta a ${t.radicado}`}
+                          value={respuestas[t.id] ?? ''}
+                          onChange={(e) => setRespuestas((p) => ({ ...p, [t.id]: e.target.value }))}
+                          placeholder="Respuesta que recibirá el titular por correo"
+                          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                        <button onClick={() => atenderTitular(t)} className="self-start inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold">
+                          <Send className="w-3.5 h-3.5" /> Responder y cerrar
+                        </button>
+                      </div>
+                    )
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
 

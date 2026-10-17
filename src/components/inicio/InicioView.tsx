@@ -301,7 +301,7 @@ export const InicioView: React.FC<InicioViewProps> = ({
               nota: 'Según la duración de cada lección',
               icono: Clock,
             },
-            { titulo: 'Certificado', valor: `${porcentaje}%`, extra: '', nota: porcentaje === 100 ? 'Listo para descargar' : 'Avance hacia tu diploma', icono: Award },
+            { titulo: 'Constancia', valor: `${porcentaje}%`, extra: '', nota: porcentaje === 100 ? 'Listo para descargar' : 'Avance hacia tu constancia', icono: Award },
           ].map((k) => {
             const Icono = k.icono;
             return (

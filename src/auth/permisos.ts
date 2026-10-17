@@ -20,19 +20,20 @@ export type Seccion =
   | 'marketplace'
   | 'integrations'
   | 'solicitudes'
+  | 'misdatos'
   | 'admin';
 
-const ESTUDIANTE: Seccion[] = ['inicio', 'campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'marketplace'];
+const ESTUDIANTE: Seccion[] = ['inicio', 'misdatos', 'campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'marketplace'];
 const INSTRUCTOR: Seccion[] = [...ESTUDIANTE, 'automation', 'analytics'];
 const ADMINISTRACION: Seccion[] = [...INSTRUCTOR, 'integrations', 'solicitudes', 'admin'];
 
 export const SECCIONES_POR_ROL: Record<UserRole, Seccion[]> = {
-  Invitado: ['inicio', 'campus'],
+  Invitado: ['inicio', 'misdatos', 'campus'],
   Estudiante: ESTUDIANTE,
   'Profesor/Tutor': INSTRUCTOR,
-  Coordinador: ['inicio', 'campus', 'knowledge', 'analytics', 'marketplace'],
-  CreadorIA: ['inicio', 'campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'automation', 'marketplace'],
-  Auditor: ['inicio', 'analytics', 'solicitudes'],
+  Coordinador: ['inicio', 'misdatos', 'campus', 'knowledge', 'analytics', 'marketplace'],
+  CreadorIA: ['inicio', 'misdatos', 'campus', 'aihub', 'promptlab', 'agentstudio', 'knowledge', 'nocode', 'automation', 'marketplace'],
+  Auditor: ['inicio', 'misdatos', 'analytics', 'solicitudes'],
   OrgAdmin: ADMINISTRACION,
   SuperAdmin: ADMINISTRACION,
 };

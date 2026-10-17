@@ -7,6 +7,9 @@ import { CampusView } from './components/campus/CampusView';
 import { InicioView } from './components/inicio/InicioView';
 import { PantallaIngreso, type Vista, type Aviso } from './components/navigation/PantallaIngreso';
 import { AccesosView } from './components/accesos/AccesosView';
+import { MisDatosView } from './components/legal/MisDatosView';
+import { AceptacionPendiente } from './components/legal/AceptacionPendiente';
+import { AvisoCookies } from './components/legal/AvisoCookies';
 import { acceso, esErrorApi, vigilarSesion, type ConfigAcceso, type UsuarioSesion } from './auth/cliente';
 import { AIHubView } from './components/aihub/AIHubView';
 import { PromptLabView } from './components/promptlab/PromptLabView';
@@ -37,6 +40,7 @@ import {
 import { TenantOrg, UserRole, UserProfile, PromptVersion, AgentDefinition, Workflow, KnowledgeDocument, NoCodeTool } from './types';
 
 const NOMBRES_SECCION: Record<string, string> = {
+  misdatos: 'Mis datos y autorizaciones',
   solicitudes: 'Solicitudes de acceso',
   inicio: 'Inicio',
   campus: 'Campus LMS',
@@ -258,6 +262,8 @@ export default function App() {
 
   if (!usuarioSesion) {
     return (
+      <>
+      <AvisoCookies />
       <PantallaIngreso
         key={`${vistaIngreso.tipo}-${avisoIngreso?.texto ?? ''}`}
         config={configAcceso}
@@ -267,6 +273,18 @@ export default function App() {
           setAvisoIngreso(null);
           aplicarUsuario(u);
         }}
+      />
+      </>
+    );
+  }
+
+  // Documentos obligatorios con versión nueva: se aceptan antes de continuar.
+  if (usuarioSesion.pendientesLegales.length > 0) {
+    return (
+      <AceptacionPendiente
+        pendientes={usuarioSesion.pendientesLegales}
+        onAceptado={() => setUsuarioSesion({ ...usuarioSesion, pendientesLegales: [] })}
+        onSalir={handleCerrarSesion}
       />
     );
   }
@@ -403,6 +421,8 @@ export default function App() {
             <IntegrationsView connectors={connectors} />
           )}
 
+          {activeSection === 'misdatos' && puedeAcceder(currentRole, 'misdatos') && <MisDatosView />}
+
           {activeSection === 'solicitudes' && puedeAcceder(currentRole, 'solicitudes') && (
             <AccesosView
               usuario={usuarioSesion}
@@ -442,6 +462,7 @@ export default function App() {
         onClose={() => setTutorOpen(false)}
         initialContext={tutorContext}
       />
+      <AvisoCookies />
     </div>
   );
 }

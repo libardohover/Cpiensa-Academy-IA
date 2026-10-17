@@ -123,14 +123,15 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
       <div className="relative bg-slate-900 border-b border-slate-800 text-white px-5 sm:px-8 py-6 shrink-0 overflow-hidden">
         <img
           src={heroBanner}
-          alt="Campus CPIENSA+"
+          alt="Imagen ilustrativa de un campus, generada con inteligencia artificial"
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover opacity-20 pointer-events-none"
         />
+        <span className="absolute bottom-1 right-2 z-10 text-[9px] text-slate-400">Imagen ilustrativa generada con IA</span>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-semibold text-blue-400 uppercase tracking-wider mb-1">
-              <span>Diplomado Superior</span>
+              <span>Diplomado · Educación informal</span>
               <span aria-hidden="true">·</span>
               <span>10 Módulos</span>
               <span aria-hidden="true">·</span>
@@ -174,7 +175,7 @@ Evalúa la respuesta del estudiante con una calificación del 1.0 al 5.0, destac
               className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-amber-300 bg-amber-950/60 hover:bg-amber-900/60 border border-amber-600/40 rounded-lg transition-colors whitespace-nowrap"
             >
               <Award className="w-4 h-4 text-amber-400" />
-              <span>Ver Certificado</span>
+              <span>Ver constancia</span>
             </button>
           </div>
         </div>

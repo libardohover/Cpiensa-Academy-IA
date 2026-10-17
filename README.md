@@ -40,7 +40,7 @@ La plataforma tiene ingreso real con correo y contraseña. Solo entran las cuent
 
 ### Recorrido
 
-1. **Solicitar acceso** (pantalla de ingreso): nombre, correo, institución, rol solicitado, motivo opcional y autorización de datos (Ley 1581).
+1. **Solicitar acceso** (pantalla de ingreso): nombre, correo, institución, rol solicitado, motivo opcional y tres casillas separadas: términos y condiciones, política de privacidad y declaración de mayoría de edad.
 2. El solicitante recibe un **enlace de verificación** (vence en 24 h) y confirma su correo.
 3. La plataforma envía la solicitud a **piensacorporacion@gmail.com** (`APROBACIONES_CORREO`) con nombre, correo, institución, rol solicitado, fecha y un enlace al panel. El enlace **no autoriza nada por sí solo**: hay que iniciar sesión con una cuenta administradora.
 4. En **Solicitudes de acceso** (subsistema L), el administrador **aprueba** (confirma la institución y asigna el rol y sus permisos), **rechaza** o **pide información adicional**.
@@ -89,6 +89,18 @@ Si no existe ningún SuperAdmin, el servidor crea la cuenta **piensacorporacion@
 ### Modo demostración (solo pruebas)
 
 Con `MODO_DEMO=true` (o con `npm run dev`), la pantalla de ingreso muestra **Entrar en demostración** con selector de rol, y el rol se puede cambiar desde el menú. Las sesiones de demostración no ven ni deciden solicitudes reales. En el servidor de producción (`npm start`) está **desactivado** salvo que se active de forma explícita.
+
+## Cumplimiento legal
+
+- **Documentos** versionados en `/legal/…`; su contenido está en `server/legal/textos.ts` y los datos de la entidad, las versiones y las fechas en `src/legal/documentos.ts`. Cada documento tiene una huella SHA-256.
+- **Aceptación**: casillas separadas y sin marcar para términos, privacidad y mayoría de edad. Si sube la versión de un documento obligatorio, todas las personas deben aceptarla al ingresar.
+- **Prueba del consentimiento**: `datos/consentimientos.jsonl` guarda fecha, versión, huella, texto de la casilla, medio, IP y navegador. Se consulta y exporta en CSV desde **Solicitudes de acceso → Consentimientos**.
+- **Derechos del titular**: **Mis datos y autorizaciones**, en el menú de usuario. Las solicitudes llevan radicado y fecha límite (10 o 15 días hábiles) y se atienden en **Solicitudes de acceso → Derechos de titulares**.
+- **Cookies**: solo la cookie técnica de sesión y almacenamiento local funcional. Se informan con un aviso. Las fuentes se sirven desde la plataforma.
+- **Conservación**: borrado automático de solicitudes no verificadas (7 días) y rechazadas (180 días), y de la auditoría con más de 2 años.
+- Matriz normativa y pendientes de la Corporación: [`docs/CUMPLIMIENTO-LEGAL.md`](docs/CUMPLIMIENTO-LEGAL.md). Imágenes y licencias: [`docs/ATRIBUCIONES.md`](docs/ATRIBUCIONES.md).
+
+> Los textos legales son borradores técnicos: deben ser revisados por un abogado antes de publicar la plataforma.
 
 ## Roles y permisos (RBAC)
 
@@ -198,7 +210,7 @@ Todas las rutas, salvo `/api/health`, la verificación de certificados y las de 
 | Envío de correos | Real con SMTP configurado; sin SMTP se guardan en `datos/correos/` |
 | Progreso del Campus | Se guarda por persona **en el navegador** (no en el servidor) |
 | Pestaña Usuarios de «Administración & RBAC», cursos, analítica y marketplace | Datos de ejemplo en `src/data/` (las cuentas reales se gestionan en «Solicitudes de acceso») |
-| Políticas de privacidad y condiciones de uso | Textos base para revisión jurídica (`public/`) |
+| Documentos legales (`/legal/terminos`, `/legal/privacidad`, `/legal/cookies`, `/legal/reembolsos`) | Funcionales y versionados; **borradores para revisión jurídica** con datos de la entidad por completar |
 
 Para producción, el registro de certificados, el corpus RAG y los flujos deben conectarse a una base de datos y a los servicios reales.
 

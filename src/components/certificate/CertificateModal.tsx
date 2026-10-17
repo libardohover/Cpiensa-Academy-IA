@@ -29,7 +29,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const [certData, setCertData] = useState<Certificate>({
     code: certificateCode,
     studentName: 'Ana María Restrepo Cadavid',
-    courseTitle: 'Diplomado Superior en Inteligencia Artificial y Automatización 2.0',
+    courseTitle: 'Diplomado en Inteligencia Artificial y Automatización 2.0',
     issueDate: '2026-09-20',
     institution: 'Corporación Étnica Educativa CPIENSA+ & CPIENSA+ ACADEMY IA',
     hours: 120,
@@ -99,7 +99,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       onClick={onClose}
       role="dialog"
       aria-modal="true"
-      aria-label="Certificado CPIENSA+"
+      aria-label="Constancia de asistencia CPIENSA+"
     >
       {/* La ventana nunca supera el alto de la pantalla: solo el diploma se desplaza */}
       <div
@@ -111,7 +111,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-400" />
             <span className="font-bold text-sm">
-              <span className="hidden sm:inline">Certificación Oficial Verificable </span>CPIENSA+ ACADEMY IA
+              <span className="hidden sm:inline">Constancia de asistencia verificable · </span>CPIENSA+ ACADEMY IA
             </span>
           </div>
 
@@ -160,13 +160,13 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               </h1>
               <div className="w-16 h-0.5 bg-blue-600 my-2" />
               <span className="text-xs text-slate-500 font-medium">
-                Por cuanto ha acreditado satisfactoriamente los requisitos académicos y de sustentación, otorga el presente:
+                Hace constar que:
               </span>
             </div>
 
             <div className="my-6">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                DIPLOMA DE CERTIFICACIÓN PROFESIONAL A
+                CONSTANCIA DE ASISTENCIA
               </span>
               <h2 className="text-2xl md:text-3xl font-serif font-bold text-slate-900">
                 {certData.studentName}
@@ -175,24 +175,27 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
             <div className="my-6 max-w-xl mx-auto">
               <p className="text-xs text-slate-600 leading-relaxed">
-                Por haber completado con distinción académica el programa de formación integral:
+                Asistió y participó en el programa de educación informal:
               </p>
               <div className="text-base md:text-lg font-bold text-blue-900 mt-1">
                 {certData.courseTitle}
               </div>
               <p className="text-xs text-slate-500 mt-2 font-mono">
-                Intensidad: {certData.hours} Horas Académicas · Calificación Final: {certData.grade}
+                Intensidad: {certData.hours} horas · Desempeño: {certData.grade}
               </p>
               <p className="text-[11px] text-slate-600 mt-2 leading-relaxed">
                 Formación con ejes transversales en <strong>valores y principios cristianos</strong> y{' '}
                 <strong>enfoque etnoeducativo</strong> (Ley 70 de 1993 · Decreto 804 de 1995).
+              </p>
+              <p className="text-[10px] text-slate-500 mt-2">
+                Programa de educación informal (Decreto 1075 de 2015, art. 2.6.6.8). No conduce a título.
               </p>
             </div>
 
             {/* Competencies Badges */}
             <div className="my-6 pt-4 border-t border-slate-200">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2">
-                Competencias Profesionales Validadas en Sustentación
+                Competencias trabajadas en el programa
               </span>
               <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-slate-700">
                 {certData.skills.map((skill, i) => (

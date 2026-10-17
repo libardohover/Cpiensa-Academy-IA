@@ -40,6 +40,8 @@ import {
 } from './seguridad';
 import { CORREO_APROBACIONES, enviarCorreo, smtpConfigurado } from './correo';
 import * as P from './plantillas';
+import { DOCUMENTOS, DOCUMENTOS_OBLIGATORIOS, TEXTO_CASILLA, type IdDocumento } from '../../src/legal/documentos';
+import { HUELLA_EDAD, huellaDocumento, registrarConsentimiento } from '../legal/consentimientos';
 
 const HORAS_VERIFICACION = 24;
 const HORAS_ENLACE_CONTRASENA = 48;
@@ -66,7 +68,54 @@ export type UsuarioPublico = {
   institucionId: string;
   institucionNombre: string;
   esDemo: boolean;
+  /** Documentos obligatorios cuya versión vigente aún no ha aceptado. */
+  pendientesLegales: IdDocumento[];
 };
+
+/** Documentos obligatorios que la cuenta no ha aceptado en su versión vigente. */
+export const pendientesLegales = (c: Cuenta): IdDocumento[] =>
+  DOCUMENTOS_OBLIGATORIOS.filter((id) => c.aceptaciones?.[id as 'terminos' | 'privacidad']?.version !== DOCUMENTOS[id].version);
+
+/** Valida las casillas enviadas desde un formulario. Devuelve errores por campo. */
+export function validarCasillas(body: any, exigirEdad: boolean): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (body?.aceptaTerminos !== true) e.aceptaTerminos = 'Debes aceptar los Términos y condiciones.';
+  if (body?.aceptaPrivacidad !== true) e.aceptaPrivacidad = 'Debes aceptar la Política de tratamiento de datos personales.';
+  if (exigirEdad && body?.mayorDeEdad !== true) e.mayorDeEdad = 'La plataforma es solo para personas de 18 años o más.';
+  // Las versiones que vio la persona deben ser las vigentes
+  for (const id of DOCUMENTOS_OBLIGATORIOS) {
+    const v = body?.versiones?.[id];
+    if (v !== undefined && v !== DOCUMENTOS[id].version) e.version = 'Los documentos se actualizaron. Recarga la página para ver la versión vigente.';
+  }
+  return e;
+}
+
+/** Guarda la prueba de la aceptación y la última versión aceptada en la cuenta. */
+export function guardarAceptaciones(c: Cuenta, medio: string, req: express.Request, conEdad: boolean) {
+  const ahora = new Date().toISOString();
+  const base = {
+    correo: c.correo,
+    cuentaId: c.id,
+    institucionId: c.institucionId,
+    accion: 'aceptar' as const,
+    medio,
+    ip: ipDe(req),
+    navegador: String(req.get('user-agent') || '').slice(0, 300),
+  };
+  for (const id of DOCUMENTOS_OBLIGATORIOS) {
+    registrarConsentimiento({ ...base, documento: id, version: DOCUMENTOS[id].version, huella: huellaDocumento(id), casilla: TEXTO_CASILLA[id as 'terminos' | 'privacidad'] });
+  }
+  if (conEdad) registrarConsentimiento({ ...base, documento: 'declaracion_edad', version: '1', huella: HUELLA_EDAD, casilla: TEXTO_CASILLA.edad });
+  db.actualizarCuenta(c.id, {
+    aceptaciones: {
+      ...c.aceptaciones,
+      terminos: { version: DOCUMENTOS.terminos.version, fecha: ahora },
+      privacidad: { version: DOCUMENTOS.privacidad.version, fecha: ahora },
+    },
+    ...(conEdad ? { mayorDeEdad: true } : {}),
+  });
+  db.auditar({ actor: c.correo, accion: 'documentos_aceptados', institucionId: c.institucionId, detalle: `${medio}: términos v${DOCUMENTOS.terminos.version}, privacidad v${DOCUMENTOS.privacidad.version}${conEdad ? ', declaración de mayoría de edad' : ''}`, ip: ipDe(req) });
+}
 
 function publico(c: Cuenta): UsuarioPublico {
   return {
@@ -77,6 +126,7 @@ function publico(c: Cuenta): UsuarioPublico {
     institucionId: c.institucionId,
     institucionNombre: nombreInstitucion(c.institucionId),
     esDemo: false,
+    pendientesLegales: pendientesLegales(c),
   };
 }
 
@@ -89,6 +139,7 @@ function usuarioDemo(rol: UserRole): UsuarioPublico {
     institucionId: INSTITUCIONES[0].id,
     institucionNombre: INSTITUCIONES[0].name,
     esDemo: true,
+    pendientesLegales: [],
   };
 }
 
@@ -118,6 +169,11 @@ export function exigirSesion(req: ReqConSesion, res: express.Response, next: exp
     }
     req.cuenta = c;
     req.usuario = publico(c);
+    // Con documentos nuevos sin aceptar, solo se permite aceptarlos o consultar los datos propios.
+    const libre = req.originalUrl.startsWith('/api/legal/') || req.originalUrl.startsWith('/api/auth/');
+    if (req.usuario.pendientesLegales.length && !libre) {
+      return res.status(403).json({ error: 'Debes aceptar la versión vigente de los documentos legales para continuar.', codigo: 'aceptacion_pendiente' });
+    }
   } else if (s.demoRol && modoDemo()) {
     req.usuario = usuarioDemo(s.demoRol);
   } else {
@@ -192,9 +248,6 @@ export function rutasAutenticacion(): express.Router {
   // 1. Solicitud de acceso
   r.post('/auth/solicitudes', async (req, res) => {
     const ip = ipDe(req);
-    if (registrarIntento(`solicitud:${ip}`, 5, 60, 60)) {
-      return res.status(429).json({ error: 'Has enviado muchas solicitudes. Intenta más tarde.', codigo: 'limite' });
-    }
     const nombre = texto(req.body?.nombre, 120);
     const correo = db.normalizarCorreo(req.body?.correo);
     const institucionId = texto(req.body?.institucionId, 80);
@@ -205,8 +258,12 @@ export function rutasAutenticacion(): express.Router {
     if (!correoValido(correo)) errores.correo = 'Escribe un correo válido.';
     if (!institucionPorId(institucionId)) errores.institucionId = 'Elige una institución.';
     if (!esRol(rol) || !ROLES_SOLICITABLES.includes(rol)) errores.rol = 'Elige un rol.';
-    if (req.body?.aceptaDatos !== true) errores.aceptaDatos = 'Debes autorizar el tratamiento de tus datos.';
+    Object.assign(errores, validarCasillas(req.body, true));
     if (Object.keys(errores).length) return res.status(400).json({ error: 'Revisa los campos marcados.', codigo: 'validacion', errores });
+    // Límite por IP: solo cuentan las solicitudes válidas (las que generan correos)
+    if (registrarIntento(`solicitud:${ip}`, 5, 60, 60)) {
+      return res.status(429).json({ error: 'Has enviado muchas solicitudes. Intenta más tarde.', codigo: 'limite' });
+    }
 
     const mensaje =
       'Si los datos son correctos, recibirás en tu correo un enlace para confirmarlo. Revisa también la carpeta de spam.';
@@ -232,6 +289,7 @@ export function rutasAutenticacion(): express.Router {
       passwordHash: null,
       motivoSolicitud: motivo || undefined,
     });
+    guardarAceptaciones(cuenta, 'formulario_solicitud_acceso', req, true);
     const token = db.crearToken('verificacion', cuenta.id, HORAS_VERIFICACION * 60);
     await enviarCorreo(P.correoVerificacion(correo, nombre, `${urlBase(req)}/?accion=verificar&token=${token}`, HORAS_VERIFICACION));
     db.auditar({ actor: correo, accion: 'solicitud_creada', objetivo: correo, institucionId, detalle: `Rol solicitado: ${NOMBRE_ROL[rol as UserRole]}`, ip });
@@ -401,7 +459,7 @@ export function rutasAutenticacion(): express.Router {
     const t = db.usarToken(tipo, texto(req.body?.token, 200), false);
     const c = t && db.cuentaPorId(t.cuentaId);
     if (!c || !puedeIngresar(c)) return res.status(400).json({ error: 'El enlace no es válido o ya venció.', codigo: 'token_invalido' });
-    res.json({ correo: c.correo, nombre: c.nombre });
+    res.json({ correo: c.correo, nombre: c.nombre, pendientesLegales: pendientesLegales(c), declaroEdad: Boolean(c.mayorDeEdad) });
   });
 
   // 5. Establecer o restablecer contraseña
@@ -414,7 +472,14 @@ export function rutasAutenticacion(): express.Router {
     const contrasena = String(req.body?.contrasena ?? '');
     const problema = problemaContrasena(contrasena, c.correo);
     if (problema) return res.status(400).json({ error: problema, codigo: 'validacion', errores: { contrasena: problema } });
+    // Cuentas que aún no aceptaron los documentos vigentes (p. ej., la administradora inicial) los aceptan aquí.
+    const faltan = pendientesLegales(c).length > 0 || !c.mayorDeEdad;
+    if (faltan) {
+      const errores = validarCasillas(req.body, !c.mayorDeEdad);
+      if (Object.keys(errores).length) return res.status(400).json({ error: 'Revisa las casillas marcadas.', codigo: 'validacion', errores });
+    }
     db.usarToken(tipo, claro, true);
+    if (faltan) guardarAceptaciones(c, tipo === 'recuperacion' ? 'restablecer_contrasena' : 'establecer_contrasena', req, !c.mayorDeEdad);
     db.actualizarCuenta(c.id, { passwordHash: await cifrarContrasena(contrasena) });
     db.cerrarSesionesDe(c.id);
     db.auditar({ actor: c.correo, accion: tipo === 'recuperacion' ? 'contrasena_restablecida' : 'contrasena_establecida', institucionId: c.institucionId, ip: ipDe(req) });

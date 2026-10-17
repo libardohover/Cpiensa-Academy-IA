@@ -4,6 +4,7 @@ import type { UserRole } from '../../types';
 import { NOMBRE_ROL, ORDEN_ROLES } from '../../auth/permisos';
 import { acceso, esErrorApi, type ConfigAcceso, type UsuarioSesion } from '../../auth/cliente';
 import logoCpiensa from '../../assets/images/cpiensa-logo.png';
+import { CasillasLegales, CASILLAS_VACIAS, EnlacesLegales, versionesVigentes, type ValoresCasillas } from '../legal/CasillasLegales';
 
 export type Vista =
   | { tipo: 'ingresar' }
@@ -143,7 +144,11 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
   const [contrasena, setContrasena] = useState('');
   const [codigo, setCodigo] = useState('');
   // Solicitud
-  const [sol, setSol] = useState({ nombre: '', correo: '', institucionId: '', rol: '', motivo: '', aceptaDatos: false });
+  const [sol, setSol] = useState({ nombre: '', correo: '', institucionId: '', rol: '', motivo: '' });
+  // Casillas de aceptación: independientes y sin marcar por defecto
+  const [casillas, setCasillas] = useState<ValoresCasillas>(CASILLAS_VACIAS);
+  // Enlace de contraseña: qué falta aceptar (p. ej., la cuenta administradora inicial)
+  const [faltaAceptar, setFaltaAceptar] = useState<{ documentos: boolean; edad: boolean }>({ documentos: false, edad: false });
   // Contraseña nueva
   const [nueva, setNueva] = useState('');
   const [confirmar, setConfirmar] = useState('');
@@ -182,7 +187,10 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
     setTitularEnlace(null);
     acceso
       .enlace(vista.modo, vista.token)
-      .then((d) => setTitularEnlace(d.correo))
+      .then((d) => {
+        setFaltaAceptar({ documentos: d.pendientesLegales.length > 0 || !d.declaroEdad, edad: !d.declaroEdad });
+        setTitularEnlace(d.correo);
+      })
       .catch((e) => ir({ tipo: 'ingresar' }, { tipo: 'error', texto: esErrorApi(e) ? e.error : 'El enlace no es válido.' }));
   }, [vista]);
 
@@ -247,7 +255,9 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(sol.correo.trim())) err.correo = 'Escribe un correo válido.';
     if (!sol.institucionId) err.institucionId = 'Elige tu institución.';
     if (!sol.rol) err.rol = 'Elige el rol que solicitas.';
-    if (!sol.aceptaDatos) err.aceptaDatos = 'Debes autorizar el tratamiento de tus datos.';
+    if (!casillas.aceptaTerminos) err.aceptaTerminos = 'Debes aceptar los Términos y condiciones.';
+    if (!casillas.aceptaPrivacidad) err.aceptaPrivacidad = 'Debes aceptar la Política de tratamiento de datos personales.';
+    if (!casillas.mayorDeEdad) err.mayorDeEdad = 'La plataforma es solo para personas de 18 años o más.';
     if (Object.keys(err).length) {
       setErrores(err);
       setAviso({ tipo: 'error', texto: 'Revisa los campos marcados.' });
@@ -255,7 +265,7 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
     }
     setCargando(true);
     try {
-      const r = await acceso.solicitar({ ...sol, nombre: sol.nombre.trim(), correo: sol.correo.trim() });
+      const r = await acceso.solicitar({ ...sol, nombre: sol.nombre.trim(), correo: sol.correo.trim(), ...casillas, versiones: versionesVigentes() });
       ir({ tipo: 'listo', titulo: 'Revisa tu correo', texto: r.mensaje });
     } catch (e2) {
       manejarError(e2);
@@ -300,13 +310,18 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
     const err: Record<string, string> = {};
     if (nueva.length < 10) err.nueva = 'Usa al menos 10 caracteres, con letras y números.';
     if (nueva !== confirmar) err.confirmar = 'Las contraseñas no coinciden.';
+    if (faltaAceptar.documentos) {
+      if (!casillas.aceptaTerminos) err.aceptaTerminos = 'Debes aceptar los Términos y condiciones.';
+      if (!casillas.aceptaPrivacidad) err.aceptaPrivacidad = 'Debes aceptar la Política de tratamiento de datos personales.';
+      if (faltaAceptar.edad && !casillas.mayorDeEdad) err.mayorDeEdad = 'La plataforma es solo para personas de 18 años o más.';
+    }
     if (Object.keys(err).length) {
       setErrores(err);
       return;
     }
     setCargando(true);
     try {
-      const r = await acceso.contrasena(vista.modo, vista.token, nueva);
+      const r = await acceso.contrasena(vista.modo, vista.token, nueva, faltaAceptar.documentos ? { ...casillas, versiones: versionesVigentes() } : {});
       setNueva('');
       setConfirmar('');
       setCorreo(titularEnlace ?? '');
@@ -499,7 +514,7 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
                   </select>
                 </Campo>
               </div>
-              <Campo id="sol-motivo" etiqueta="Motivo (opcional)" ayuda="Por ejemplo: cohorte, programa o curso al que perteneces.">
+              <Campo id="sol-motivo" etiqueta="Motivo (opcional)" ayuda="Por ejemplo: cohorte o programa. No incluyas datos sensibles (salud, origen étnico, religión, etc.).">
                 <textarea
                   id="sol-motivo"
                   rows={2}
@@ -509,25 +524,16 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
                   className={claseCampo()}
                 />
               </Campo>
-              <div>
-                <label className="flex items-start gap-2 text-xs text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={sol.aceptaDatos}
-                    onChange={(e) => cambiarSol('aceptaDatos', e.target.checked)}
-                    aria-invalid={Boolean(errores.aceptaDatos)}
-                    className="mt-0.5 accent-blue-600"
-                  />
-                  <span>
-                    Autorizo el tratamiento de mis datos para gestionar esta solicitud, según la{' '}
-                    <a href="/privacidad.html" target="_blank" rel="noopener" className="font-semibold text-blue-700 hover:underline">
-                      política de privacidad
-                    </a>{' '}
-                    (Ley 1581 de 2012).
-                  </span>
-                </label>
-                {errores.aceptaDatos && <p className="mt-1 text-[11px] font-medium text-rose-700">{errores.aceptaDatos}</p>}
-              </div>
+              <CasillasLegales
+                id="sol"
+                valores={casillas}
+                onCambio={(campo, v) => {
+                  setCasillas((p) => ({ ...p, [campo]: v }));
+                  limpiar(campo);
+                }}
+                errores={errores}
+                mostrarEdad
+              />
               <Boton cargando={cargando} texto="Enviando…">
                 <MailCheck className="w-4 h-4" /> Enviar solicitud
               </Boton>
@@ -623,6 +629,18 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
                     error={errores.confirmar}
                     autoComplete="new-password"
                   />
+                  {faltaAceptar.documentos && (
+                    <CasillasLegales
+                      id="pass"
+                      valores={casillas}
+                      onCambio={(campo, v) => {
+                        setCasillas((p) => ({ ...p, [campo]: v }));
+                        limpiar(campo);
+                      }}
+                      errores={errores}
+                      mostrarEdad={faltaAceptar.edad}
+                    />
+                  )}
                   <Boton cargando={cargando} texto="Guardando…">
                     <KeyRound className="w-4 h-4" /> Guardar contraseña
                   </Boton>
@@ -679,13 +697,9 @@ export const PantallaIngreso: React.FC<Props> = ({ config, vistaInicial, avisoIn
           )}
         </div>
 
-        <footer className="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
-          <a href="/privacidad.html" target="_blank" rel="noopener" className="hover:text-slate-800 hover:underline">
-            Política de privacidad
-          </a>
-          <a href="/condiciones.html" target="_blank" rel="noopener" className="hover:text-slate-800 hover:underline">
-            Condiciones de uso
-          </a>
+        <footer className="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-500 space-y-1">
+          <EnlacesLegales />
+          <p className="text-center text-[10px] text-slate-400">Plataforma para personas de 18 años o más.</p>
         </footer>
       </main>
     </div>

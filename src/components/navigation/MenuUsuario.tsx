@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Home, LogOut, UserCheck, Check, Sparkles } from 'lucide-react';
+import { ChevronDown, Home, LogOut, UserCheck, Check, Sparkles, ShieldCheck } from 'lucide-react';
 import type { TenantOrg, UserProfile, UserRole } from '../../types';
 import { NOMBRE_ROL, ORDEN_ROLES } from '../../auth/permisos';
 
@@ -7,6 +7,7 @@ interface MenuUsuarioProps {
   user: UserProfile;
   organizacion: TenantOrg;
   onIrAInicio: () => void;
+  onMisDatos: () => void;
   onAbrirTutor: () => void;
   onCambiarRol: (rol: UserRole) => void;
   onCerrarSesion: () => void;
@@ -19,6 +20,7 @@ export const MenuUsuario: React.FC<MenuUsuarioProps> = ({
   user,
   organizacion,
   onIrAInicio,
+  onMisDatos,
   onAbrirTutor,
   onCambiarRol,
   onCerrarSesion,
@@ -97,6 +99,9 @@ export const MenuUsuario: React.FC<MenuUsuarioProps> = ({
             </button>
             <button role="menuitem" onClick={() => elegir(onAbrirTutor)} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
               <Sparkles className="w-4 h-4 text-slate-500" /> Tutor Socrático
+            </button>
+            <button role="menuitem" onClick={() => elegir(onMisDatos)} className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">
+              <ShieldCheck className="w-4 h-4 text-slate-500" /> Mis datos y autorizaciones
             </button>
           </div>
 

@@ -201,8 +201,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </p>
 
         <div className="mt-2.5 pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 flex items-center justify-between">
-          <span>Ley 1581 Habeas Data</span>
-          <span className="font-mono text-emerald-400">Verificado</span>
+          <a href="/legal/privacidad" target="_blank" rel="noopener" className="hover:text-white">Privacidad</a>
+          <a href="/legal/terminos" target="_blank" rel="noopener" className="hover:text-white">Términos</a>
+          <a href="/legal/cookies" target="_blank" rel="noopener" className="hover:text-white">Cookies</a>
+          <a href="/legal/reembolsos" target="_blank" rel="noopener" className="hover:text-white">Reembolsos</a>
         </div>
       </div>
     </aside>

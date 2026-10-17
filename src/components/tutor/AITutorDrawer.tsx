@@ -1,3 +1,4 @@
+import { AvisoIA } from '../legal/AvisoIA';
 import React, { useState } from 'react';
 import {
   Sparkles,
@@ -188,6 +189,7 @@ Responde como Tutor Socrático de CPIENSA+ ACADEMY IA: fomenta el razonamiento a
             <Send className="w-4 h-4" />
           </button>
         </form>
+        <AvisoIA className="px-4 pb-3" />
       </div>
     </div>
   );

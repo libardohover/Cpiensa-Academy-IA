@@ -1,5 +1,4 @@
 import { INSTITUCIONES } from './instituciones';
-import avatarDirector from '../assets/images/avatar_director_pedagogico_1792081707279.jpg';
 import {
   TenantOrg,
   UserProfile,
@@ -21,7 +20,7 @@ export const INITIAL_USER: UserProfile = {
   email: 'ana.restrepo@cpiensa.edu.co',
   role: 'Estudiante',
   orgId: 'org-cpiensa-central',
-  avatar: avatarDirector,
+  avatar: '', // sin fotografía: se muestran las iniciales
   enrolledCourseId: 'diplomado-ia-2-0',
   completedLessons: ['les-1-1', 'les-1-2', 'les-2-1', 'les-2-2', 'les-3-1', 'les-6-1'],
   certificatesEarned: ['CPI-2026-9481'],

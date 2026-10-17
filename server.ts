@@ -5,7 +5,8 @@ import path from 'node:path';
 import { GoogleGenAI } from '@google/genai';
 import { exigirSeccion, exigirSesion, modoDemo, prepararAdministradorInicial, rutasAutenticacion, type ReqConSesion } from './server/auth/rutas';
 import { verificarOrigen } from './server/auth/seguridad';
-import { auditar } from './server/auth/almacen';
+import { auditar, purgarDatosVencidos } from './server/auth/almacen';
+import { paginasLegales, rutasLegales } from './server/legal/rutas';
 import { CORREO_APROBACIONES, smtpConfigurado } from './server/auth/correo';
 import { SERVICIOS } from './src/auth/permisos';
 
@@ -35,6 +36,9 @@ app.use('/api', verificarOrigen);
 
 // Autenticación, solicitudes de acceso y panel de aprobación (públicas o con su propio control)
 app.use('/api', rutasAutenticacion());
+// Documentos legales, aceptaciones y derechos del titular
+app.use('/api', rutasLegales());
+app.use(paginasLegales());
 
 // Cliente de Gemini (solo si hay una clave real configurada)
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -402,7 +406,7 @@ app.get('/api/certificates/:code', (req, res) => {
   const verifiedList: Record<string, any> = {
     'CPI-2026-9481': {
       studentName: 'Ana María Restrepo Cadavid',
-      courseTitle: 'Diplomado Superior en Inteligencia Artificial y Automatización 2.0',
+      courseTitle: 'Diplomado en Inteligencia Artificial y Automatización 2.0',
       issueDate: '2026-09-20',
       institution: 'Corporación Étnica Educativa CPIENSA+',
       hours: 120,
@@ -476,6 +480,17 @@ async function startServer() {
     console.log(`  ➜ Acceso:  ${modoDemo() ? 'ingreso real + modo demostración habilitado' : 'ingreso real (modo demostración desactivado)'}`);
     console.log(`  ➜ Correo:  ${smtpConfigurado() ? 'SMTP configurado' : 'sin SMTP: los correos se guardan en datos/correos/'} · aprobaciones: ${CORREO_APROBACIONES}\n`);
     const base = process.env.APP_URL?.trim().replace(/\/$/, '') || `http://localhost:${PORT}`;
+    // Conservación: se eliminan los datos que ya cumplieron su finalidad (al iniciar y cada 6 horas)
+    const purgar = () => {
+      try {
+        const r = purgarDatosVencidos();
+        if (r.cuentas || r.auditoria) console.log(`[datos] Conservación: ${r.cuentas} solicitud(es) y ${r.auditoria} registro(s) de auditoría eliminados.`);
+      } catch (err) {
+        console.error('[datos] Error en la depuración:', err);
+      }
+    };
+    purgar();
+    setInterval(purgar, 6 * 3_600_000).unref();
     prepararAdministradorInicial(base).catch((err) => console.error('[acceso] No se pudo preparar el administrador inicial:', err));
   });
   server.on('error', (err: NodeJS.ErrnoException) => {
